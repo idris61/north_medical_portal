@@ -1,0 +1,437 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Yeni Malzeme Çıkışı") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header d-flex justify-content-between align-items-center">
+		<div>
+			<h3 class="mb-2">{{ _("Yeni Malzeme Çıkışı") }}</h3>
+			<p class="text-muted mb-0">{{ _("Deponuzdan malzeme çıkışı yapın") }}</p>
+		</div>
+		<div>
+			<a href="/portal/material-issue" class="btn btn-default">
+				<i class="fa fa-arrow-left"></i> {{ _("Listeye Dön") }}
+			</a>
+		</div>
+	</div>
+
+	{% if has_warehouses %}
+	<div class="form-page">
+		<form id="material-issue-form" class="form-horizontal">
+			<!-- Section Break: Temel Bilgiler -->
+			<div class="section-break" style="background-color: #D9F6FF; padding: 15px; margin: -15px -15px 15px -15px; border-bottom: 2px solid #b8c2cc;">
+				<strong>{{ _("Temel Bilgiler") }}</strong>
+			</div>
+
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label for="posting-date" class="control-label">
+							{{ _("Tarih") }} <span class="text-danger">*</span>
+						</label>
+						<div>
+							<input type="date" id="posting-date" class="form-control" required>
+						</div>
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label for="warehouse-select" class="control-label">
+							{{ _("Depo") }} <span class="text-danger">*</span>
+						</label>
+						<div>
+							<select id="warehouse-select" class="form-control" required>
+								<option value="">{{ _("Depo Seçin") }}</option>
+								{% for wh in warehouses %}
+								<option value="{{ wh.name }}">{{ wh.warehouse_name or wh.name }}</option>
+								{% endfor %}
+							</select>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Section Break: Ürünler -->
+			<div class="section-break" style="background-color: #D9F6FF; padding: 15px; margin: 20px -15px 15px -15px; border-bottom: 2px solid #b8c2cc;">
+				<strong>{{ _("Ürünler") }}</strong>
+			</div>
+
+			<div class="form-group">
+				<div class="table-responsive">
+					<table class="table table-bordered table-condensed" id="items-table">
+						<thead>
+							<tr>
+								<th style="width: 5%;">{{ _("Sıra") }}</th>
+								<th style="width: 40%;">{{ _("Ürün Kodu") }} <span class="text-danger">*</span></th>
+								<th style="width: 25%;">{{ _("Miktar") }} <span class="text-danger">*</span></th>
+								<th style="width: 25%;">{{ _("Mevcut Stok") }}</th>
+								<th style="width: 5%;"></th>
+							</tr>
+						</thead>
+						<tbody id="items-tbody">
+							<tr class="item-row">
+								<td class="text-center">1</td>
+								<td>
+									<input type="text" class="form-control item-code" placeholder="{{ _('Ürün kodu') }}" required>
+									<small class="text-muted item-name" style="display: block; margin-top: 3px;"></small>
+								</td>
+								<td>
+									<input type="number" class="form-control item-qty" step="0.01" min="0.01" placeholder="0" required>
+								</td>
+								<td>
+									<span class="available-qty text-muted">-</span>
+								</td>
+								<td class="text-center">
+									<button type="button" class="btn btn-xs btn-danger remove-item" style="display: none;">
+										<i class="fa fa-trash"></i>
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<button type="button" id="add-item-btn" class="btn btn-sm btn-default" style="margin-top: 10px;">
+					<i class="fa fa-plus"></i> {{ _("Satır Ekle") }}
+				</button>
+			</div>
+
+			<!-- Section Break: Notlar -->
+			<div class="section-break" style="background-color: #D9F6FF; padding: 15px; margin: 20px -15px 15px -15px; border-bottom: 2px solid #b8c2cc;">
+				<strong>{{ _("Notlar") }}</strong>
+			</div>
+
+			<div class="form-group">
+				<label for="remarks" class="control-label">{{ _("Açıklama") }}</label>
+				<div>
+					<textarea id="remarks" class="form-control" rows="3" placeholder="{{ _('İsteğe bağlı notlar ekleyebilirsiniz...') }}"></textarea>
+				</div>
+			</div>
+
+			<!-- Form Actions -->
+			<div class="form-actions" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #d1d8e0;">
+				<button type="submit" class="btn btn-primary btn-sm" id="submit-btn">
+					<i class="fa fa-check"></i> {{ _("Kaydet") }}
+				</button>
+				<a href="/portal/material-issue" class="btn btn-default btn-sm">
+					<i class="fa fa-times"></i> {{ _("İptal") }}
+				</a>
+			</div>
+		</form>
+	</div>
+
+	<div id="success-message" class="alert alert-success" style="display: none;">
+		<strong>{{ _("Başarılı!") }}</strong> <span id="success-text"></span>
+	</div>
+
+	<div id="error-message" class="alert alert-danger" style="display: none;">
+		<strong>{{ _("Hata!") }}</strong> <span id="error-text"></span>
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 0h6m-6 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7"/>
+			</svg>
+		</div>
+		<h5>{{ _("Depo bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Yetkili olduğunuz depo bulunmamaktadır. Lütfen yöneticinizle iletişime geçin.") }}</p>
+		<a href="/portal/material-issue" class="btn btn-default mt-3">
+			<i class="fa fa-arrow-left"></i> {{ _("Listeye Dön") }}
+		</a>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+.form-page {
+	background: #fff;
+	padding: 15px;
+	border: 1px solid #d1d8e0;
+	border-radius: 4px;
+}
+
+.form-horizontal .control-label {
+	padding-top: 7px;
+	margin-bottom: 0;
+	text-align: right;
+	font-weight: 500;
+}
+
+.form-horizontal .form-group {
+	margin-right: 0;
+	margin-left: 0;
+}
+
+#items-table {
+	margin-bottom: 0;
+}
+
+#items-table thead th {
+	background-color: #f5f7fa;
+	font-weight: 600;
+	border-bottom: 2px solid #d1d8e0;
+}
+
+#items-table tbody tr:hover {
+	background-color: #f8f9fa;
+}
+
+#items-table tbody td {
+	vertical-align: middle;
+	padding: 8px;
+}
+
+#items-table .item-row:first-child .remove-item {
+	display: none !important;
+}
+
+#items-table .form-control {
+	border: 1px solid #d1d8e0;
+	font-size: 13px;
+}
+
+#items-table .item-name {
+	font-size: 11px;
+	color: #6c757d;
+}
+
+.available-qty {
+	color: #28a745;
+	font-weight: 500;
+}
+
+.available-qty.low-stock {
+	color: #dc3545;
+}
+
+.form-actions .btn {
+	margin-right: 10px;
+}
+</style>
+
+<script>
+frappe.ready(function() {
+	const $form = $('#material-issue-form');
+	const $itemsTbody = $('#items-tbody');
+	const $warehouseSelect = $('#warehouse-select');
+	const $postingDate = $('#posting-date');
+	const $addItemBtn = $('#add-item-btn');
+	const $submitBtn = $('#submit-btn');
+	
+	let stockItems = {{ stock_items | tojson }};
+	let selectedWarehouse = null;
+	let rowIndex = 1;
+
+	// Tarih alanını bugünün tarihi ile doldur
+	const today = new Date().toISOString().split('T')[0];
+	$postingDate.val(today);
+
+	// Warehouse değiştiğinde ürün listesini güncelle
+	$warehouseSelect.on('change', function() {
+		selectedWarehouse = $(this).val();
+		updateItemOptions();
+	});
+
+	// Ürün ekle butonu
+	$addItemBtn.on('click', function() {
+		addItemRow();
+	});
+
+	// Ürün satırı ekle
+	function addItemRow() {
+		rowIndex++;
+		const $firstRow = $('.item-row').first();
+		const $newRow = $firstRow.clone();
+		$newRow.find('td:first-child').text(rowIndex);
+		$newRow.find('input').val('');
+		$newRow.find('.item-name').text('').hide();
+		$newRow.find('.available-qty').text('-').removeClass('low-stock');
+		$newRow.find('.remove-item').show();
+		$newRow.find('.item-code').on('input', function() {
+			updateItemInfo($(this).closest('.item-row'));
+		});
+		$newRow.find('.item-qty').on('input', function() {
+			validateQty($(this).closest('.item-row'));
+		});
+		$itemsTbody.append($newRow);
+		updateItemOptions();
+		updateRowNumbers();
+	}
+
+	// Ürün satırı kaldır
+	$(document).on('click', '.remove-item', function() {
+		$(this).closest('.item-row').remove();
+		updateRowNumbers();
+	});
+
+	// Satır numaralarını güncelle
+	function updateRowNumbers() {
+		$itemsTbody.find('.item-row').each(function(index) {
+			$(this).find('td:first-child').text(index + 1);
+		});
+	}
+
+	// Ürün bilgilerini güncelle
+	function updateItemInfo($row) {
+		const itemCode = $row.find('.item-code').val().trim();
+		if (!itemCode || !selectedWarehouse) {
+			$row.find('.item-name').text('').hide();
+			$row.find('.available-qty').text('-');
+			return;
+		}
+
+		const item = stockItems.find(i => 
+			i.item_code === itemCode && i.warehouse === selectedWarehouse
+		);
+
+		if (item) {
+			$row.find('.item-name').text(item.item_name).show();
+			const availableQty = item.actual_qty || 0;
+			$row.find('.available-qty').text(availableQty);
+			$row.find('.available-qty').toggleClass('low-stock', availableQty <= 0);
+			$row.find('.item-qty').attr('max', availableQty);
+		} else {
+			$row.find('.item-name').text('Ürün bulunamadı').show();
+			$row.find('.available-qty').text('-');
+		}
+		validateQty($row);
+	}
+
+	// Miktar validasyonu
+	function validateQty($row) {
+		const qty = parseFloat($row.find('.item-qty').val()) || 0;
+		const maxQty = parseFloat($row.find('.item-qty').attr('max')) || 0;
+		
+		if (maxQty > 0 && qty > maxQty) {
+			$row.find('.item-qty').addClass('is-invalid');
+			$row.find('.available-qty').addClass('text-danger').text(`Maks: ${maxQty}`);
+		} else {
+			$row.find('.item-qty').removeClass('is-invalid');
+			if (maxQty > 0) {
+				$row.find('.available-qty').text(maxQty);
+			}
+		}
+	}
+
+	// İlk satır için event handler'ları ekle
+	$('.item-row').first().find('.item-code').on('input', function() {
+		updateItemInfo($(this).closest('.item-row'));
+	});
+	$('.item-row').first().find('.item-qty').on('input', function() {
+		validateQty($(this).closest('.item-row'));
+	});
+
+	// Form submit
+	$form.on('submit', function(e) {
+		e.preventDefault();
+		
+		if (!selectedWarehouse) {
+			showError('Lütfen bir depo seçin');
+			return;
+		}
+
+		const items = [];
+		let hasError = false;
+
+		$('.item-row').each(function() {
+			const $row = $(this);
+			const itemCode = $row.find('.item-code').val().trim();
+			const qty = parseFloat($row.find('.item-qty').val()) || 0;
+
+			if (!itemCode || qty <= 0) {
+				hasError = true;
+				return false;
+			}
+
+			const maxQty = parseFloat($row.find('.item-qty').attr('max')) || 0;
+			if (qty > maxQty) {
+				hasError = true;
+				return false;
+			}
+
+			items.push({
+				item_code: itemCode,
+				qty: qty
+			});
+		});
+
+		if (hasError || items.length === 0) {
+			showError('Lütfen geçerli ürün ve miktar girin');
+			return;
+		}
+
+		// Submit
+		$submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> İşleniyor...');
+		
+		frappe.call({
+			method: 'north_medical_portal.www.api.stock_entry.create_material_issue',
+			args: {
+				warehouse: selectedWarehouse,
+				items: items,
+				posting_date: $postingDate.val(),
+				remarks: $('#remarks').val()
+			},
+			callback: function(r) {
+				$submitBtn.prop('disabled', false).html('<i class="fa fa-check"></i> Kaydet');
+				
+				if (r.message && r.message.name) {
+					showSuccess(`Malzeme çıkışı başarıyla oluşturuldu: ${r.message.name}`);
+					// 2 saniye sonra liste sayfasına yönlendir
+					setTimeout(function() {
+						window.location.href = '/portal/material-issue';
+					}, 2000);
+				} else {
+					showError(r.message && r.message.message ? r.message.message : 'Bir hata oluştu');
+				}
+			},
+			error: function(r) {
+				$submitBtn.prop('disabled', false).html('<i class="fa fa-check"></i> Kaydet');
+				showError(r.message || 'Bir hata oluştu');
+			}
+		});
+	});
+
+	// Mesaj göster/gizle
+	function showSuccess(message) {
+		$('#success-text').text(message);
+		$('#success-message').show();
+		$('#error-message').hide();
+	}
+
+	function showError(message) {
+		$('#error-text').text(message);
+		$('#error-message').show();
+		$('#success-message').hide();
+	}
+
+	// Ürün seçeneklerini güncelle (autocomplete için)
+	function updateItemOptions() {
+		if (!selectedWarehouse) return;
+		
+		const warehouseItems = stockItems.filter(i => i.warehouse === selectedWarehouse);
+		// Autocomplete için datalist kullanabiliriz
+		$('.item-code').each(function() {
+			const $input = $(this);
+			const $datalist = $input.attr('list');
+			if (!$datalist) {
+				const listId = 'items-list-' + Math.random().toString(36).substr(2, 9);
+				$input.attr('list', listId);
+				let $datalist = $('<datalist>').attr('id', listId);
+				warehouseItems.forEach(item => {
+					$datalist.append($('<option>').attr('value', item.item_code).text(item.item_name));
+				});
+				$input.after($datalist);
+			} else {
+				const $existingList = $('#' + $datalist);
+				$existingList.empty();
+				warehouseItems.forEach(item => {
+					$existingList.append($('<option>').attr('value', item.item_code).text(item.item_name));
+				});
+			}
+		});
+	}
+});
+</script>
+{% endblock %}
+

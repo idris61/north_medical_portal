@@ -55,6 +55,13 @@ North Medical Germany'ye özel dealer portal sistemi - Stok takibi, malzeme tale
 - **Company-based Processing**: Her şirket için ayrı kontrol
 - Yapılandırma: `north_medical_portal/utils/stock.py`
 
+#### Material Request Durum Güncelleme
+- **Otomatik Durum Güncelleme**: Sales Order oluşturulduğunda Material Request durumu otomatik güncellenir
+- **Ordered Qty Tracking**: Material Request'ten sepete eklenen ürünler için `ordered_qty` takibi
+- **Status Progression**: Material Request durumu otomatik olarak güncellenir (Pending → Partially Ordered → Ordered)
+- **Purchase Type Support**: Sadece "Purchase" tipindeki Material Request'ler için çalışır
+- Yapılandırma: `north_medical_portal/utils/sales_order.py`
+
 ### 🏷️ Product Badges
 - **Badge Sistemi**: Ürün badge sistemi (Item ve Website Item'da)
 - **Badge Görseli**: Badge görseli, link ve sıralama desteği
@@ -82,6 +89,7 @@ north_medical_portal/
 │   ├── website.py               # Website yapılandırması (CSS, styling) - ÖZEL
 │   ├── stock.py                  # Stok kontrolü ve Material Request - ÖZEL
 │   ├── delivery_note.py          # Delivery Note otomasyonu - ÖZEL
+│   ├── sales_order.py            # Sales Order Material Request güncelleme - ÖZEL
 │   ├── helpers.py               # Ortak helper fonksiyonlar
 │   └── bulk_pricing_and_stock.py # Toplu fiyat ve stok ayarları
 ├── www/
@@ -186,11 +194,15 @@ Navigate to: **Dealer Settings** to configure:
 - **Create Requests**: Create Material Requests from portal
 - **View Requests**: List and view all Material Requests
 - **Automatic Creation**: Automatic Material Request creation for low stock items
+- **Add to Cart**: Add Material Request items directly to webshop cart
+- **Status Auto-Update**: Material Request status automatically updates when Sales Order is created from cart
+- **Status Progression**: Status changes from "Pending" → "Partially Ordered" → "Ordered" based on ordered quantities
 
 ### Sales Order Management
 - **View Orders**: List all sales orders for dealer
 - **Order Details**: View detailed order information
 - **Status Tracking**: Track order status
+- **Material Request Integration**: Automatically updates Material Request status when Sales Order is created from Material Request items
 
 ### Invoice Management
 - **View Invoices**: List all invoices for dealer

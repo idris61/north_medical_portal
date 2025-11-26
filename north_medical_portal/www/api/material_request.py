@@ -1,0 +1,118 @@
+import frappe
+from frappe import _
+from frappe.utils import nowdate, add_days
+from north_medical_portal.utils.helpers import get_company_warehouses, validate_dealer_access
+
+@frappe.whitelist()
+def create_material_request(items, warehouse=None):
+	"""Malzeme talebi oluştur"""
+	# Permission kontrolü ve şirket doğrulama
+	user_company = validate_dealer_access()
+	
+	if not warehouse:
+		warehouses = get_company_warehouses(user_company)
+		if warehouses:
+			warehouse = warehouses[0].name
+		else:
+			frappe.throw(_("Depo bulunamadı"))
+	
+	# Material Request oluştur
+	mr = frappe.new_doc("Material Request")
+	mr.material_request_type = "Material Transfer"
+	mr.company = user_company
+	mr.schedule_date = add_days(nowdate(), 7)
+	mr.transaction_date = nowdate()
+	
+	# Items ekle
+	if isinstance(items, str):
+		import json
+		items = json.loads(items)
+	
+	for item in items:
+		mr.append("items", {
+			"item_code": item.get("item_code"),
+			"qty": item.get("qty", 1),
+			"warehouse": warehouse,
+			"schedule_date": add_days(nowdate(), 7)
+		})
+	
+	mr.flags.ignore_permissions = True
+	mr.insert()
+	mr.submit()
+	
+	return {
+		"name": mr.name,
+		"status": mr.status,
+		"message": _("Malzeme talebi oluşturuldu")
+	}
+
+@frappe.whitelist()
+def get_material_requests():
+	"""Malzeme taleplerini listele - Controller ile tutarlı"""
+	# Permission kontrolü ve şirket doğrulama
+	user_company = validate_dealer_access()
+	
+	# Şirketin tüm talepleri (controller ile tutarlı)
+	material_requests = frappe.get_all(
+		"Material Request",
+		filters={"company": user_company},
+		fields=["name", "status", "material_request_type", "schedule_date", "creation", "docstatus", "owner", "transaction_date"],
+		order_by="creation desc",
+		limit=100
+	)
+	
+	return {"material_requests": material_requests}
+
+
+@frappe.whitelist()
+def add_material_request_to_cart(material_request_name):
+	"""Material Request'teki ürünleri webshop sepetine ekle"""
+	user_company = validate_dealer_access()
+	
+	# Material Request'i al
+	mr = frappe.get_doc("Material Request", material_request_name)
+	
+	# Kullanıcının şirketine ait mi kontrol et
+	if mr.company != user_company:
+		frappe.throw(_("Bu Material Request'e erişim yetkiniz bulunmamaktadır"), frappe.PermissionError)
+	
+	# Sadece Purchase tipindeki Material Request'ler sepete eklenebilir
+	if mr.material_request_type != "Purchase":
+		frappe.throw(_("Sadece 'Purchase' tipindeki Material Request'ler sepete eklenebilir"))
+	
+	# Webshop sepetine ekle
+	from webshop.webshop.shopping_cart.cart import update_cart as webshop_update_cart
+	from frappe.utils import flt
+	
+	added_items = []
+	errors = []
+	
+	for item in mr.items:
+		# Sadece henüz sipariş verilmemiş ürünleri ekle
+		ordered_qty = flt(item.ordered_qty or 0)
+		stock_qty = flt(item.stock_qty or item.qty or 0)
+		
+		if ordered_qty < stock_qty:
+			remaining_qty = stock_qty - ordered_qty
+			try:
+				# Sepete ekle
+				webshop_update_cart(
+					item_code=item.item_code,
+					qty=remaining_qty,
+					uom=item.uom or item.stock_uom
+				)
+				added_items.append({
+					"item_code": item.item_code,
+					"qty": remaining_qty
+				})
+			except Exception as e:
+				errors.append(f"{item.item_code}: {str(e)}")
+	
+	if errors:
+		frappe.throw(_("Bazı ürünler sepete eklenemedi: {0}").format(", ".join(errors)))
+	
+	return {
+		"message": _("{0} ürün sepete eklendi").format(len(added_items)),
+		"added_items": added_items,
+		"cart_url": "/cart"
+	}

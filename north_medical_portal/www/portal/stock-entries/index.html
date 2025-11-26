@@ -1,0 +1,79 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Stok Hareketleri") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Stok Hareketleri") }}</h3>
+		<p class="text-muted">{{ _("Malzeme alım ve çıkış işlemlerinizi görüntüleyin ve yönetin") }}</p>
+	</div>
+
+	{% if has_entries %}
+	<div class="table-container">
+		<table class="table table-bordered table-hover">
+			<thead class="thead-light">
+				<tr>
+					<th>{{ _("Hareket No") }}</th>
+					<th>{{ _("Tip") }}</th>
+					<th>{{ _("Tarih") }}</th>
+					<th>{{ _("Durum") }}</th>
+					<th>{{ _("Notlar") }}</th>
+					<th>{{ _("İşlem") }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for entry in stock_entries %}
+				<tr>
+					<td>{{ entry.name }}</td>
+					<td>
+						{% if entry.stock_entry_type == "Material Receipt" %}
+							<span class="badge badge-success">{{ _("Malzeme Alımı") }}</span>
+						{% elif entry.stock_entry_type == "Material Issue" %}
+							<span class="badge badge-warning">{{ _("Malzeme Çıkışı") }}</span>
+						{% else %}
+							<span class="badge badge-secondary">{{ entry.stock_entry_type }}</span>
+						{% endif %}
+					</td>
+					<td>{{ frappe.format_date(entry.posting_date) if entry.posting_date else frappe.format_date(entry.creation) }}</td>
+					<td>
+						{% if entry.docstatus == 0 %}
+							<span class="badge badge-secondary">{{ _("Taslak") }}</span>
+						{% elif entry.docstatus == 1 %}
+							<span class="badge badge-success">{{ _("Onaylandı") }}</span>
+						{% elif entry.docstatus == 2 %}
+							<span class="badge badge-danger">{{ _("İptal") }}</span>
+						{% endif %}
+					</td>
+					<td>{{ entry.remarks or "-" }}</td>
+					<td>
+						<a href="/order?doctype=Stock Entry&name={{ entry.name }}" class="btn btn-sm btn-primary">
+							{{ _("Detay") }}
+						</a>
+					</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 0h6m-6 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7"/>
+			</svg>
+		</div>
+		<h5>{{ _("Stok hareketi bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz stok hareketi yapılmamış") }}</p>
+	</div>
+	{% endif %}
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+

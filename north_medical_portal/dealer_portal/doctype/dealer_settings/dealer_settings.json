@@ -1,0 +1,88 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "prompt",
+  "creation": "2025-01-01 00:00:00.000000",
+  "doctype": "DocType",
+  "editable_grid": 0,
+  "engine": "InnoDB",
+  "field_order": [
+    "section_auto_transfer",
+    "enable_auto_transfer",
+    "default_source_warehouse",
+    "default_material_request_type",
+    "enable_reorder_hook",
+    "dealer_role"
+  ],
+  "fields": [
+    {
+      "fieldname": "section_auto_transfer",
+      "fieldtype": "Section Break",
+      "label": "Stok Transferi"
+    },
+    {
+      "default": "1",
+      "fieldname": "enable_auto_transfer",
+      "fieldtype": "Check",
+      "label": "Satış Sonrası Otomatik Transfer"
+    },
+    {
+      "fieldname": "default_source_warehouse",
+      "fieldtype": "Link",
+      "label": "Kaynak Depo",
+      "options": "Warehouse",
+      "reqd": 1
+    },
+    {
+      "default": "Material Transfer",
+      "fieldname": "default_material_request_type",
+      "fieldtype": "Select",
+      "label": "Varsayılan Material Request Tipi",
+      "options": "Purchase\nMaterial Transfer\nManufacture"
+    },
+    {
+      "fieldname": "enable_reorder_hook",
+      "fieldtype": "Check",
+      "label": "Reorder Otomasyonu Aktif"
+    },
+    {
+      "default": "Customer",
+      "fieldname": "dealer_role",
+      "fieldtype": "Link",
+      "label": "Portal Rolü",
+      "options": "Role"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "is_submittable": 0,
+  "issingle": 1,
+  "links": [],
+  "modified": "2025-01-01 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Dealer Portal",
+  "name": "Dealer Settings",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": []
+}
+
+
+
+
+
+
+

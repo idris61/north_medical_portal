@@ -1,0 +1,159 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Malzeme Çıkışı") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Malzeme Çıkışı") }}</h3>
+		<p class="text-muted">{{ _("Tüm malzeme çıkışlarınızı görüntüleyin") }}</p>
+		<div class="mt-3">
+			<a href="/portal/material-issue/new" class="btn btn-primary">
+				<i class="fa fa-plus"></i> {{ _("Yeni Oluştur") }}
+			</a>
+		</div>
+	</div>
+
+	{% if has_entries %}
+	<div class="website-list">
+		{% for entry in stock_entries %}
+		<div class="web-list-item transaction-list-item">
+			<a href="/portal/stock-entry/{{ entry.name }}" class="transaction-item-link"></a>
+			<div class="row align-items-center">
+				<div class="col-sm-4">
+					<span class="list-item-name font-weight-bold">{{ entry.name }}</span>
+					<div class="small text-muted transaction-time">
+						{{ frappe.format_date(entry.posting_date) if entry.posting_date else frappe.format_date(entry.creation) }}
+					</div>
+				</div>
+				<div class="col-sm-3">
+					{% if entry.docstatus == 0 %}
+						<span class="indicator-pill gray list-item-status">{{ _("Taslak") }}</span>
+					{% elif entry.docstatus == 1 %}
+						<span class="indicator-pill green list-item-status">
+							<span class="indicator-dot"></span> {{ _("Onaylandı") }}
+						</span>
+					{% elif entry.docstatus == 2 %}
+						<span class="indicator-pill red list-item-status">{{ _("İptal") }}</span>
+					{% endif %}
+				</div>
+				<div class="col-sm-3">
+					<div class="small text-muted items-preview ellipsis ellipsis-width">
+						{{ (entry.items_preview[:50] + '...') if entry.items_preview and entry.items_preview|length > 50 else (entry.items_preview or entry.warehouse_display or "-") }}
+					</div>
+				</div>
+				<div class="col-sm-2 text-right">
+					<a href="/portal/stock-entry/{{ entry.name }}" class="btn btn-sm btn-primary" onclick="event.stopPropagation();">
+						{{ _("Detay") }}
+					</a>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 0h6m-6 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7"/>
+			</svg>
+		</div>
+		<h5>{{ _("Malzeme çıkışı bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz malzeme çıkışı yapılmamış") }}</p>
+		<a href="/portal/material-issue/new" class="btn btn-primary mt-3">
+			<i class="fa fa-plus"></i> {{ _("Yeni Oluştur") }}
+		</a>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+.website-list {
+	background-color: var(--fg-color);
+	padding: 0 var(--padding-lg);
+	border-radius: var(--border-radius-md);
+}
+
+.transaction-list-item {
+	padding: 1rem 0;
+	border-bottom: 1px solid var(--border-color);
+	position: relative;
+	cursor: pointer;
+}
+
+.transaction-list-item:hover {
+	background-color: #f8f9fa;
+}
+
+.transaction-list-item:only-child,
+.transaction-list-item:last-child {
+	border: 0;
+}
+
+.transaction-item-link {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	text-decoration: none;
+	opacity: 0;
+	overflow: hidden;
+	text-indent: -9999px;
+	z-index: 0;
+}
+
+.list-item-name {
+	font-size: var(--font-size-sm);
+	color: var(--text-color);
+}
+
+.transaction-time {
+	margin-top: 0.25rem;
+}
+
+.indicator-pill {
+	display: inline-block;
+	padding: 0.25rem 0.75rem;
+	border-radius: 1rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.indicator-pill.gray {
+	background-color: #e0e0e0;
+	color: #666;
+}
+
+.indicator-pill.green {
+	background-color: #d4edda;
+	color: #155724;
+}
+
+.indicator-pill.green .indicator-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	background-color: #28a745;
+	border-radius: 50%;
+	margin-right: 0.5rem;
+	vertical-align: middle;
+}
+
+.indicator-pill.red {
+	background-color: #f8d7da;
+	color: #721c24;
+}
+
+.items-preview {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ellipsis-width {
+	max-width: 200px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Stok Durumu") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Stok Durumu") }}</h3>
+		<p class="text-muted">{{ _("Anlık stok durumlarınızı görüntüleyin") }}</p>
+	</div>
+
+	{% if has_stock_data %}
+	<!-- Filtreleme Bölümü -->
+	<div class="stock-filters mb-4">
+		<div class="row">
+			<div class="col-md-3 mb-2">
+				<input type="text" id="filter-item-code" class="form-control form-control-sm" placeholder="{{ _('Ürün Kodu ile ara...') }}">
+			</div>
+			<div class="col-md-3 mb-2">
+				<input type="text" id="filter-item-name" class="form-control form-control-sm" placeholder="{{ _('Ürün Adı ile ara...') }}">
+			</div>
+			<div class="col-md-3 mb-2">
+				<select id="filter-warehouse" class="form-control form-control-sm">
+					<option value="">{{ _("Tüm Depolar") }}</option>
+					{% for wh in warehouses %}
+					<option value="{{ wh.name }}">{{ wh.warehouse_name or wh.name }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="col-md-3 mb-2">
+				<button type="button" id="clear-filters" class="btn btn-sm btn-secondary btn-block">
+					{{ _("Temizle") }}
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="stock-table-container">
+		<table id="stock-table" class="table table-bordered table-hover">
+			<thead class="thead-light">
+				<tr>
+					<th>{{ _("Ürün Kodu") }}</th>
+					<th>{{ _("Ürün Adı") }}</th>
+					<th>{{ _("Depo") }}</th>
+					<th class="text-right">{{ _("Mevcut Stok") }}</th>
+					<th class="text-right">{{ _("Min. Stok") }}</th>
+					<th class="text-right">{{ _("Sipariş Miktarı") }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in stock_data %}
+				{% set actual_qty = item.actual_qty or 0 %}
+				{% set reorder_level = item.warehouse_reorder_level or 0 %}
+				{% set is_low_stock = reorder_level > 0 and actual_qty <= reorder_level %}
+				<tr data-item-code="{{ item.item_code }}" 
+					data-item-name="{{ item.item_name }}" 
+					data-warehouse="{{ item.warehouse }}"
+					class="{% if is_low_stock %}low-stock-row{% else %}normal-stock-row{% endif %}">
+					<td>{{ item.item_code }}</td>
+					<td>{{ item.item_name }}</td>
+					<td>{{ item.warehouse_name or item.warehouse }}</td>
+					<td class="text-right stock-qty">{{ item.actual_qty or 0 }}</td>
+					<td class="text-right">{{ item.warehouse_reorder_level or "-" }}</td>
+					<td class="text-right">{{ item.warehouse_reorder_qty or "-" }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		<div id="no-results" class="alert alert-info text-center" style="display: none;">
+			{{ _("Filtre kriterlerinize uygun sonuç bulunamadı") }}
+		</div>
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 0h6m-6 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7"/>
+			</svg>
+		</div>
+		<h5>{{ _("Stok verisi bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz stok hareketi yapılmamış") }}</p>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+.stock-filters {
+	background: #f8f9fa;
+	padding: 15px;
+	border-radius: 6px;
+	border: 1px solid #dee2e6;
+}
+
+#stock-table {
+	font-size: 14px;
+}
+
+#stock-table tbody tr {
+	cursor: pointer;
+}
+
+#stock-table tbody tr:hover {
+	background-color: #f8f9fa;
+}
+
+#no-results {
+	margin-top: 20px;
+}
+
+/* Stok durumuna göre satır renklendirmesi */
+.normal-stock-row {
+	background-color: #ffffff;
+}
+
+.normal-stock-row:hover {
+	background-color: #e8f5e9 !important;
+}
+
+.low-stock-row {
+	background-color: #fff3cd;
+}
+
+.low-stock-row:hover {
+	background-color: #ffe082 !important;
+}
+
+/* Mevcut stok sütunu renklendirmesi */
+.stock-qty {
+	font-weight: 600;
+	color: #0066cc;
+}
+
+.low-stock-row .stock-qty {
+	color: #dc3545;
+	font-weight: 700;
+}
+</style>
+
+<script>
+frappe.ready(function() {
+	if (!$('#stock-table').length) return;
+	
+	function filterTable() {
+		const itemCodeFilter = $('#filter-item-code').val().toLowerCase();
+		const itemNameFilter = $('#filter-item-name').val().toLowerCase();
+		const warehouseFilter = $('#filter-warehouse').val();
+		
+		let visibleCount = 0;
+		
+		$('#stock-table tbody tr').each(function() {
+			const $row = $(this);
+			const itemCode = $row.data('item-code').toLowerCase();
+			const itemName = $row.data('item-name').toLowerCase();
+			const warehouse = $row.data('warehouse');
+			
+			const matchItemCode = !itemCodeFilter || itemCode.includes(itemCodeFilter);
+			const matchItemName = !itemNameFilter || itemName.includes(itemNameFilter);
+			const matchWarehouse = !warehouseFilter || warehouse === warehouseFilter;
+			
+			if (matchItemCode && matchItemName && matchWarehouse) {
+				$row.show();
+				visibleCount++;
+			} else {
+				$row.hide();
+			}
+		});
+		
+		// Sonuç yoksa mesaj göster
+		if (visibleCount === 0) {
+			$('#no-results').show();
+			$('#stock-table').hide();
+		} else {
+			$('#no-results').hide();
+			$('#stock-table').show();
+		}
+	}
+	
+	// Filtre event handler'ları
+	$('#filter-item-code, #filter-item-name').on('keyup', filterTable);
+	$('#filter-warehouse').on('change', filterTable);
+	
+	// Temizle butonu
+	$('#clear-filters').on('click', function() {
+		$('#filter-item-code, #filter-item-name').val('');
+		$('#filter-warehouse').val('');
+		filterTable();
+	});
+	
+	// İlk yüklemede filtreleme yap
+	filterTable();
+});
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+

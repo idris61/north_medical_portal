@@ -1,0 +1,124 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Malzeme Talepleri") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Malzeme Talepleri") }}</h3>
+		<p class="text-muted">{{ _("Malzeme taleplerinizi görüntüleyin ve yeni talep oluşturun") }}</p>
+	</div>
+
+	{% if has_requests %}
+	<div class="table-container">
+		<table class="table table-bordered table-hover">
+			<thead class="thead-light">
+				<tr>
+					<th>{{ _("Talep No") }}</th>
+					<th>{{ _("Tip") }}</th>
+					<th>{{ _("Durum") }}</th>
+					<th>{{ _("Planlanan Tarih") }}</th>
+					<th>{{ _("Oluşturulma") }}</th>
+					<th>{{ _("Talep Eden") }}</th>
+					<th>{{ _("İşlem") }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for request in material_requests %}
+				<tr>
+					<td>{{ request.name }}</td>
+					<td>{{ request.material_request_type }}</td>
+					<td>
+						{% if request.status == "Pending" %}
+							<span class="badge badge-warning">{{ _("Beklemede") }}</span>
+						{% elif request.status == "Partially Ordered" %}
+							<span class="badge badge-info">{{ _("Kısmen Sipariş") }}</span>
+						{% elif request.status == "Ordered" %}
+							<span class="badge badge-success">{{ _("Sipariş Verildi") }}</span>
+						{% elif request.status == "Received" %}
+							<span class="badge badge-success">{{ _("Alındı") }}</span>
+						{% elif request.status == "Cancelled" %}
+							<span class="badge badge-danger">{{ _("İptal") }}</span>
+						{% else %}
+							<span class="badge badge-secondary">{{ request.status }}</span>
+						{% endif %}
+					</td>
+					<td>{{ frappe.format_date(request.schedule_date) if request.schedule_date else "-" }}</td>
+					<td>{{ frappe.format_date(request.creation) if request.creation else "-" }}</td>
+					<td>{{ request.owner }}</td>
+					<td>
+						<a href="/order?doctype=Material Request&name={{ request.name }}" class="btn btn-sm btn-primary">
+							{{ _("Detay") }}
+						</a>
+						{% if request.material_request_type == "Purchase" and request.status in ["Pending", "Partially Ordered", "Draft"] and request.docstatus < 2 %}
+							<button class="btn btn-sm btn-success ml-2 add-to-cart-btn" data-mr-name="{{ request.name }}">
+								<i class="fa fa-shopping-cart"></i> {{ _("Sepete Ekle") }}
+							</button>
+						{% endif %}
+					</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+				<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+				<line x1="9" y1="14" x2="15" y2="14"/>
+			</svg>
+		</div>
+		<h5>{{ _("Malzeme talebi bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz malzeme talebi oluşturulmamış") }}</p>
+	</div>
+	{% endif %}
+</div>
+
+<script>
+frappe.ready(function() {
+	$('.add-to-cart-btn').on('click', function() {
+		const $btn = $(this);
+		const mr_name = $btn.data('mr-name');
+		
+		$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Ekleniyor...") }}');
+		
+		frappe.call({
+			method: 'north_medical_portal.www.api.material_request.add_material_request_to_cart',
+			args: {
+				material_request_name: mr_name
+			},
+			callback: function(r) {
+				$btn.prop('disabled', false).html('<i class="fa fa-shopping-cart"></i> {{ _("Sepete Ekle") }}');
+				
+				if (r.message) {
+					frappe.show_alert({
+						message: r.message.message || r.message,
+						indicator: 'green'
+					}, 5);
+					
+					// Sepet sayısını güncelle
+					if (typeof webshop !== 'undefined' && webshop.webshop && webshop.webshop.shopping_cart) {
+						webshop.webshop.shopping_cart.get_cart_count();
+					}
+					
+					// 2 saniye sonra sepete yönlendir
+					setTimeout(function() {
+						window.location.href = r.message.cart_url || '/cart';
+					}, 2000);
+				}
+			},
+			error: function(r) {
+				$btn.prop('disabled', false).html('<i class="fa fa-shopping-cart"></i> {{ _("Sepete Ekle") }}');
+				frappe.show_alert({
+					message: r.message || '{{ _("Bir hata oluştu") }}',
+					indicator: 'red'
+				}, 5);
+			}
+		});
+	});
+});
+</script>
+{% endblock %}
+

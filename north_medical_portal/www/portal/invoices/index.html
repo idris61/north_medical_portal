@@ -1,0 +1,94 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Faturalar") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Faturalar") }}</h3>
+		<p class="text-muted">{{ _("Tüm faturalarınızı görüntüleyin ve ödemelerinizi yapın") }}</p>
+	</div>
+
+	{% if has_invoices %}
+	<div class="table-container">
+		<table class="table table-bordered table-hover">
+			<thead class="thead-light">
+				<tr>
+					<th>{{ _("Fatura No") }}</th>
+					<th>{{ _("Müşteri") }}</th>
+					<th>{{ _("Tarih") }}</th>
+					<th>{{ _("Vade Tarihi") }}</th>
+					<th>{{ _("Tutar") }}</th>
+					<th>{{ _("Bakiye") }}</th>
+					<th>{{ _("Durum") }}</th>
+					<th>{{ _("İşlem") }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for invoice in invoices %}
+				<tr>
+					<td><a href="/order?doctype=Sales Invoice&name={{ invoice.name }}">{{ invoice.name }}</a></td>
+					<td>{{ invoice.customer }}</td>
+					<td>{{ frappe.format_date(invoice.posting_date) }}</td>
+					<td>{{ frappe.format_date(invoice.due_date) if invoice.due_date else "-" }}</td>
+					<td class="text-right">{{ frappe.format_currency(invoice.grand_total, currency="EUR") }}</td>
+					<td class="text-right">
+						{% if invoice.outstanding_amount > 0 %}
+							<span class="text-danger">{{ frappe.format_currency(invoice.outstanding_amount, currency="EUR") }}</span>
+						{% else %}
+							<span class="text-success">{{ _("Ödendi") }}</span>
+						{% endif %}
+					</td>
+					<td>
+						{% if invoice.docstatus == 0 %}
+							<span class="badge badge-secondary">{{ _("Taslak") }}</span>
+						{% elif invoice.docstatus == 1 %}
+							{% if invoice.outstanding_amount > 0 %}
+								<span class="badge badge-warning">{{ _("Ödenmedi") }}</span>
+							{% else %}
+								<span class="badge badge-success">{{ _("Ödendi") }}</span>
+							{% endif %}
+						{% elif invoice.docstatus == 2 %}
+							<span class="badge badge-danger">{{ _("İptal") }}</span>
+						{% endif %}
+					</td>
+					<td>
+						<a href="/order?doctype=Sales Invoice&name={{ invoice.name }}" class="btn btn-sm btn-primary">
+							{{ _("Detay") }}
+						</a>
+						{% if invoice.outstanding_amount > 0 and invoice.docstatus == 1 %}
+							<a href="/order?doctype=Sales Invoice&name={{ invoice.name }}" class="btn btn-sm btn-success ml-2">
+								{{ _("Öde") }}
+							</a>
+						{% endif %}
+					</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+				<polyline points="14 2 14 8 20 8"/>
+				<line x1="16" y1="13" x2="8" y2="13"/>
+				<line x1="16" y1="17" x2="8" y2="17"/>
+				<polyline points="10 9 9 9 8 9"/>
+			</svg>
+		</div>
+		<h5>{{ _("Fatura bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz fatura oluşturulmamış") }}</p>
+	</div>
+	{% endif %}
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+

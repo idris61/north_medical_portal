@@ -1,0 +1,74 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Satış Siparişleri") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Satış Siparişleri") }}</h3>
+		<p class="text-muted">{{ _("Tüm satış siparişlerinizi görüntüleyin") }}</p>
+	</div>
+
+	{% if has_orders %}
+	<div class="table-container">
+		<table class="table table-bordered table-hover">
+			<thead class="thead-light">
+				<tr>
+					<th>{{ _("Sipariş No") }}</th>
+					<th>{{ _("Müşteri") }}</th>
+					<th>{{ _("Tarih") }}</th>
+					<th>{{ _("Teslimat Tarihi") }}</th>
+					<th>{{ _("Tutar") }}</th>
+					<th>{{ _("Durum") }}</th>
+					<th>{{ _("İşlem") }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for order in sales_orders %}
+				<tr>
+					<td><a href="/order?doctype=Sales Order&name={{ order.name }}">{{ order.name }}</a></td>
+					<td>{{ order.customer }}</td>
+					<td>{{ frappe.format_date(order.transaction_date) }}</td>
+					<td>{{ frappe.format_date(order.delivery_date) if order.delivery_date else "-" }}</td>
+					<td class="text-right">{{ frappe.format_currency(order.grand_total, currency="EUR") }}</td>
+					<td>
+						{% if order.docstatus == 0 %}
+							<span class="badge badge-secondary">{{ _("Taslak") }}</span>
+						{% elif order.docstatus == 1 %}
+							<span class="badge badge-success">{{ _("Onaylandı") }}</span>
+						{% elif order.docstatus == 2 %}
+							<span class="badge badge-danger">{{ _("İptal") }}</span>
+						{% endif %}
+					</td>
+					<td>
+						<a href="/order?doctype=Sales Order&name={{ order.name }}" class="btn btn-sm btn-primary">
+							{{ _("Detay") }}
+						</a>
+					</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+				<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+			</svg>
+		</div>
+		<h5>{{ _("Satış siparişi bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz satış siparişi oluşturulmamış") }}</p>
+	</div>
+	{% endif %}
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+

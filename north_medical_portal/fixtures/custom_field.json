@@ -1,0 +1,56 @@
+[
+ {
+  "doctype": "Custom Field",
+  "name": "Item-short_description",
+  "dt": "Item",
+  "fieldname": "short_description",
+  "fieldtype": "Small Text",
+  "label": "Short Description",
+  "description": "Kısa ürün açıklaması (liste görünümü için)",
+  "insert_after": "section_break_11"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Item-product_badges_section",
+  "dt": "Item",
+  "fieldname": "product_badges_section",
+  "fieldtype": "Section Break",
+  "label": "Product Badges & Logos",
+  "description": "Ürün sayfasında gösterilecek badge ve logo'lar (CO2 Neutral, Meditrade, vb.)",
+  "collapsible": 1,
+  "insert_after": "description"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Item-product_badges",
+  "dt": "Item",
+  "fieldname": "product_badges",
+  "fieldtype": "Table",
+  "label": "Product Badges",
+  "options": "Product Badge",
+  "description": "Ürün için gösterilecek tüm badge ve logo'lar",
+  "insert_after": "product_badges_section"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Website Item-product_badges_section",
+  "dt": "Website Item",
+  "fieldname": "product_badges_section",
+  "fieldtype": "Section Break",
+  "label": "Product Badges & Logos",
+  "description": "Ürün sayfasında gösterilecek badge ve logo'ları ekleyin (CO2 Neutral, Meditrade, vb.)",
+  "insert_after": "brand",
+  "collapsible": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Website Item-product_badges",
+  "dt": "Website Item",
+  "fieldname": "product_badges",
+  "fieldtype": "Table",
+  "label": "Product Badges",
+  "description": "Ürün için gösterilecek tüm badge ve logo'ları ekleyin",
+  "options": "Product Badge",
+  "insert_after": "product_badges_section"
+ }
+]

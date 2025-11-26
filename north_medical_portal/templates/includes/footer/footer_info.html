@@ -1,0 +1,14 @@
+{%- extends "frappe/templates/includes/footer/footer_info.html" -%}
+
+{% block footer_info %}
+<div class="footer-info">
+	<div class="row">
+		<div class="col-12" style="text-align: center;">
+			{% if copyright %}
+			&copy; {{ copyright }}
+			{% endif %}
+		</div>
+	</div>
+</div>
+{% endblock %}
+
