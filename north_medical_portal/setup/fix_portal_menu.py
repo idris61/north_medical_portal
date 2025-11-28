@@ -72,3 +72,5 @@ def fix_portal_menu():
 		print(f"❌ Hata: {str(e)}")
 		raise
 
+
+

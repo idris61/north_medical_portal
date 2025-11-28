@@ -46,3 +46,5 @@ def add_stock_summary_to_portal_settings():
 		print(f"❌ Hata: {str(e)}")
 		raise
 
+
+

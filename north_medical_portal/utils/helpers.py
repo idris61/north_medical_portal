@@ -5,6 +5,21 @@ import frappe
 from frappe import _
 
 
+def is_admin_user():
+	"""
+	Kullanıcının admin olup olmadığını kontrol et
+	
+	Returns:
+		bool: Admin kullanıcı ise True
+	"""
+	user = frappe.session.user
+	if user == "Guest":
+		return False
+	
+	user_roles = frappe.get_roles(user)
+	return user == "Administrator" or "System Manager" in user_roles or "Administrator" in user_roles
+
+
 def get_user_company():
 	"""
 	Kullanıcının bağlı olduğu şirketi döndür
@@ -123,6 +138,7 @@ def get_user_warehouses(company):
 	"""
 	Kullanıcının yetkili olduğu warehouse'ları döndür
 	Warehouse'daki "bayi_customer" field'ına göre filtreler
+	Admin kullanıcılar için tüm warehouse'ları döndürür
 	
 	Args:
 		company (str): Şirket adı
@@ -132,6 +148,10 @@ def get_user_warehouses(company):
 	"""
 	if not company:
 		return []
+	
+	# Admin kullanıcılar için tüm warehouse'ları döndür
+	if is_admin_user():
+		return get_company_warehouses(company)
 	
 	# Kullanıcının customer'ını bul
 	user_customer = get_user_customer()
@@ -158,12 +178,13 @@ def get_user_warehouses(company):
 def validate_dealer_access(company=None):
 	"""
 	Kullanıcının bayi erişim yetkisini kontrol et
+	Admin kullanıcılar için özel kontrol yapar
 	
 	Args:
 		company (str, optional): Kontrol edilecek şirket
 		
 	Returns:
-		bool: Erişim yetkisi var mı
+		str: Kullanıcının erişebileceği şirket adı
 		
 	Raises:
 		frappe.PermissionError: Erişim yetkisi yoksa
@@ -171,6 +192,34 @@ def validate_dealer_access(company=None):
 	if frappe.session.user == "Guest":
 		frappe.throw(_("Lütfen giriş yapın"), frappe.PermissionError)
 	
+	# Admin kullanıcılar için özel işlem
+	if is_admin_user():
+		# Admin için şirket belirtilmişse onu kullan, yoksa ilk şirketi döndür
+		if company:
+			# Şirketin var olduğunu kontrol et
+			if frappe.db.exists("Company", company):
+				return company
+			else:
+				frappe.throw(_("Şirket bulunamadı"), frappe.PermissionError)
+		else:
+			# Şirket belirtilmemişse, kullanıcının şirketini al veya ilk şirketi döndür
+			user_company = get_user_company()
+			if user_company:
+				return user_company
+			# Hiç şirket yoksa ilk şirketi al (North Medical hariç)
+			companies = frappe.get_all(
+				"Company",
+				filters={"name": ["!=", "North Medical"]},
+				fields=["name"],
+				order_by="creation asc",
+				limit=1
+			)
+			if companies:
+				return companies[0].name
+			# Hiç şirket yoksa hata fırlat
+			frappe.throw(_("Erişilebilir şirket bulunamadı"), frappe.PermissionError)
+	
+	# Normal kullanıcılar için mevcut kontrol
 	user_company = get_user_company()
 	if not user_company:
 		frappe.throw(_("Şirket bilgisi bulunamadı"), frappe.PermissionError)

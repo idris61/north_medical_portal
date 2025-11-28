@@ -4,7 +4,8 @@ from north_medical_portal.utils.helpers import get_user_warehouses, validate_dea
 
 @frappe.whitelist()
 def get_stock_status():
-	"""Bayi stok durumunu döndür - Sadece kullanıcının yetkili olduğu warehouse'ları gösterir (bayi_customer field'ına göre)"""
+	"""Bayi stok durumunu döndür - Sadece kullanıcının yetkili olduğu warehouse'ları gösterir (bayi_customer field'ına göre)
+	Admin kullanıcılar için tüm warehouse'ları gösterir"""
 	# Permission kontrolü ve şirket doğrulama
 	user_company = validate_dealer_access()
 	
