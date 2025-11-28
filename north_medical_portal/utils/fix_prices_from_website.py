@@ -168,14 +168,9 @@ def fix_all_prices_from_website(max_products=100):
 	"""
 	Tüm ürünlerin Item Price kayıtlarını web sitesindeki gerçek fiyatlarla güncelle.
 	"""
-	print("=" * 80)
-	print("WEB SİTESİ FİYATLARINDAN ITEM PRICE DÜZELTME")
-	print("=" * 80)
-	
 	# Price List kontrolü
 	price_list_name = "Standard Selling"
 	if not frappe.db.exists("Price List", price_list_name):
-		print(f"❌ Price List bulunamadı: {price_list_name}")
 		return {"status": "error", "message": "Price List not found"}
 	
 	# ERP'deki tüm aktif ürünler
@@ -185,8 +180,6 @@ def fix_all_prices_from_website(max_products=100):
 		fields=["name", "item_code", "item_name", "stock_uom"],
 		order_by="item_name asc"
 	)
-	
-	print(f"\n📦 ERPNext'te {len(erp_items)} aktif ürün bulundu\n")
 	
 	# Web sitesinden tüm ürün detay URL'lerini çek
 	base_url = "https://www.northmedical.de/produkte/"
@@ -225,10 +218,8 @@ def fix_all_prices_from_website(max_products=100):
 			
 			time.sleep(0.3)
 		except Exception as e:
-			print(f"   ⚠️  Sayfa {page} hatası: {e}")
+			frappe.log_error(f"Error fetching page {page}: {str(e)}", "Fix Prices From Website")
 			break
-	
-	print(f"🌐 Web sitesinden {len(product_urls)} ürün detay URL'si çekildi\n")
 	
 	stats = {
 		"processed": 0,
@@ -295,10 +286,6 @@ def fix_all_prices_from_website(max_products=100):
 			)
 			
 			if updated > 0 or created > 0:
-				print(f"   ✅ {matched_item.item_code[:30]:<30} | {matched_item.item_name[:40]:<40}")
-				for uom, price in sorted(uom_prices.items()):
-					print(f"      {uom}: €{price:.2f}")
-				
 				stats["updated"] += updated
 				stats["created"] += created
 			else:
@@ -308,18 +295,7 @@ def fix_all_prices_from_website(max_products=100):
 			
 		except Exception as e:
 			stats["errors"] += 1
-			error_msg = str(e)[:100]
-			print(f"   ❌ {web_name[:50]}: {error_msg}")
-	
-	print(f"\n{'='*80}")
-	print(f"📊 ÖZET:")
-	print(f"   🔍 İşlenen ürün: {stats['processed']}")
-	print(f"   ✅ Eşleşen ürün: {stats['matched']}")
-	print(f"   📝 Güncellenen fiyat: {stats['updated']}")
-	print(f"   ➕ Oluşturulan fiyat: {stats['created']}")
-	print(f"   ⏭️  Atlanan: {stats['skipped']}")
-	print(f"   ❌ Hatalar: {stats['errors']}")
-	print(f"{'='*80}\n")
+			frappe.log_error(f"Error processing {web_name}: {str(e)}", "Fix Prices From Website")
 	
 	return {
 		"status": "success",

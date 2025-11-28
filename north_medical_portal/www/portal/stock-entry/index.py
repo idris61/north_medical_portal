@@ -29,16 +29,8 @@ def get_context(context):
 	context.title = stock_entry_name
 	context.parents = [{"label": _("Malzeme Çıkışı"), "route": "/portal/material-issue"}]
 	
-	# Print format
-	default_print_format = frappe.db.get_value(
-		"Property Setter",
-		dict(property="default_print_format", doc_type="Stock Entry"),
-		"value",
-	)
-	if default_print_format:
-		context.print_format = default_print_format
-	else:
-		context.print_format = "Standard"
+	# Stock Entry için özel print format
+	context.print_format = "Stock Entry Portal"
 	
 	# Attachments
 	context.attachments = frappe.get_all(

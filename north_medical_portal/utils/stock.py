@@ -27,11 +27,13 @@ def check_company_reorder_levels(company):
 	warehouse_names = [w.name for w in warehouses]
 	
 	# Reorder level altına düşen ürünleri bul
+	# actual_qty kullanıyoruz çünkü stok sayfasında da actual_qty gösteriliyor
 	low_stock_items = frappe.db.sql("""
 		SELECT 
 			b.item_code,
 			i.item_name,
 			b.warehouse,
+			b.actual_qty,
 			b.projected_qty,
 			ir.warehouse_reorder_level,
 			ir.warehouse_reorder_qty,
@@ -41,8 +43,8 @@ def check_company_reorder_levels(company):
 		INNER JOIN `tabItem Reorder` ir ON ir.parent = i.name AND ir.warehouse = b.warehouse
 		WHERE b.warehouse IN %(warehouses)s
 		AND ir.warehouse_reorder_level > 0
-		AND b.projected_qty <= ir.warehouse_reorder_level
-		AND b.projected_qty >= 0
+		AND b.actual_qty <= ir.warehouse_reorder_level
+		AND b.actual_qty >= 0
 	""", {"warehouses": warehouse_names}, as_dict=True)
 	
 	if low_stock_items:
@@ -50,7 +52,11 @@ def check_company_reorder_levels(company):
 		create_auto_material_request(company, low_stock_items)
 
 def create_auto_material_request(company, items):
-	"""Otomatik Material Request oluştur"""
+	"""Otomatik Material Request oluştur
+	Returns: Oluşturulan Material Request sayısı
+	"""
+	mr_count = 0
+	
 	# Material Request tipine göre grupla
 	request_type_items = {}
 	for item in items:
@@ -112,7 +118,9 @@ def create_auto_material_request(company, items):
 						mr.set_from_warehouse = main_warehouse
 			
 			for item in warehouse_item_list:
-				reorder_qty = item.warehouse_reorder_qty or (item.warehouse_reorder_level - item.projected_qty)
+				# actual_qty kullanıyoruz çünkü stok sayfasında da actual_qty gösteriliyor
+				current_qty = item.actual_qty or 0
+				reorder_qty = item.warehouse_reorder_qty or (item.warehouse_reorder_level - current_qty)
 				if reorder_qty > 0:
 					item_dict = {
 						"item_code": item.item_code,
@@ -128,8 +136,16 @@ def create_auto_material_request(company, items):
 					mr.append("items", item_dict)
 			
 			if mr.items:
-				mr.flags.ignore_permissions = True
-				mr.insert()
-				frappe.db.commit()
+				try:
+					mr.flags.ignore_permissions = True
+					mr.insert()
+					# Material Request'i Draft olarak bırak (submit etme)
+					frappe.db.commit()
+					mr_count += 1
+				except Exception as e:
+					frappe.log_error(f"Material Request oluşturma hatası: {str(e)}", "Create Auto Material Request")
+					# Hata olsa bile devam et
+	
+	return mr_count
 
 

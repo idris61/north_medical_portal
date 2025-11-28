@@ -1,65 +1,66 @@
 {% extends "templates/web.html" %}
 
-{% block title %}{{ _("Malzeme Talepleri") }}{% endblock %}
+{% block title %}{{ _("Material Requests") }}{% endblock %}
 
 {% block page_content %}
 <div class="portal-page">
 	<div class="page-header">
-		<h3 class="mb-4">{{ _("Malzeme Talepleri") }}</h3>
-		<p class="text-muted">{{ _("Malzeme taleplerinizi görüntüleyin ve yeni talep oluşturun") }}</p>
+		<h3 class="mb-4">{{ _("Material Requests") }}</h3>
 	</div>
 
 	{% if has_requests %}
-	<div class="table-container">
-		<table class="table table-bordered table-hover">
-			<thead class="thead-light">
-				<tr>
-					<th>{{ _("Talep No") }}</th>
-					<th>{{ _("Tip") }}</th>
-					<th>{{ _("Durum") }}</th>
-					<th>{{ _("Planlanan Tarih") }}</th>
-					<th>{{ _("Oluşturulma") }}</th>
-					<th>{{ _("Talep Eden") }}</th>
-					<th>{{ _("İşlem") }}</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for request in material_requests %}
-				<tr>
-					<td>{{ request.name }}</td>
-					<td>{{ request.material_request_type }}</td>
-					<td>
-						{% if request.status == "Pending" %}
-							<span class="badge badge-warning">{{ _("Beklemede") }}</span>
-						{% elif request.status == "Partially Ordered" %}
-							<span class="badge badge-info">{{ _("Kısmen Sipariş") }}</span>
-						{% elif request.status == "Ordered" %}
-							<span class="badge badge-success">{{ _("Sipariş Verildi") }}</span>
-						{% elif request.status == "Received" %}
-							<span class="badge badge-success">{{ _("Alındı") }}</span>
-						{% elif request.status == "Cancelled" %}
-							<span class="badge badge-danger">{{ _("İptal") }}</span>
-						{% else %}
-							<span class="badge badge-secondary">{{ request.status }}</span>
-						{% endif %}
-					</td>
-					<td>{{ frappe.format_date(request.schedule_date) if request.schedule_date else "-" }}</td>
-					<td>{{ frappe.format_date(request.creation) if request.creation else "-" }}</td>
-					<td>{{ request.owner }}</td>
-					<td>
-						<a href="/order?doctype=Material Request&name={{ request.name }}" class="btn btn-sm btn-primary">
-							{{ _("Detay") }}
-						</a>
-						{% if request.material_request_type == "Purchase" and request.status in ["Pending", "Partially Ordered", "Draft"] and request.docstatus < 2 %}
-							<button class="btn btn-sm btn-success ml-2 add-to-cart-btn" data-mr-name="{{ request.name }}">
-								<i class="fa fa-shopping-cart"></i> {{ _("Sepete Ekle") }}
+	<div class="website-list">
+		{% for request in material_requests %}
+		<div class="web-list-item transaction-list-item">
+			<a href="/portal/material-request/{{ request.name }}" class="transaction-item-link"></a>
+			<div class="row align-items-center">
+				<div class="col-sm-4">
+					<span class="list-item-name font-weight-bold">{{ request.name }}</span>
+					<div class="small text-muted transaction-time">
+						{{ frappe.format_date(request.creation) if request.creation else "-" }}
+					</div>
+				</div>
+				<div class="col-sm-3">
+					{% if request.status == "Pending" %}
+						<span class="indicator-pill gray list-item-status">{{ _("Pending") }}</span>
+					{% elif request.status == "Partially Ordered" %}
+						<span class="indicator-pill blue list-item-status">{{ _("Partially Ordered") }}</span>
+					{% elif request.status == "Ordered" %}
+						<span class="indicator-pill blue list-item-status">{{ _("Ordered") }}</span>
+					{% elif request.status == "Received" %}
+						<span class="indicator-pill blue list-item-status">{{ _("Received") }}</span>
+					{% elif request.status == "Cancelled" %}
+						<span class="indicator-pill red list-item-status">{{ _("Cancelled") }}</span>
+					{% else %}
+						<span class="indicator-pill gray list-item-status">{{ _(request.status) }}</span>
+					{% endif %}
+				</div>
+				<div class="col-sm-3">
+					<div class="small text-muted">
+						{{ _("Planned Date") }}:
+						{{ frappe.format_date(request.schedule_date) if request.schedule_date else "-" }}
+					</div>
+					<div class="small text-muted">
+						{{ _("Requested By") }}: {{ request.owner }}
+					</div>
+				</div>
+				<div class="col-sm-2 text-right">
+					<div class="action-buttons">
+						{% if request.material_request_type == "Purchase" and request.status in ["Draft", "Pending", "Partially Ordered"] and request.docstatus < 2 and request.status != "Ordered" %}
+							<button type="button"
+								class="btn btn-sm btn-primary add-to-cart-btn"
+								data-mr-name="{{ request.name }}"
+								onclick="addToCartFromMR('{{ request.name }}', this); return false;"
+								style="text-transform: uppercase; font-weight: bold; position: relative; z-index: 20; cursor: pointer;">
+								<i class="fa fa-shopping-cart mr-1"></i>
+								<span class="btn-text">{{ _("Add to Cart") }}</span>
 							</button>
 						{% endif %}
-					</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
+					</div>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
 	</div>
 	{% else %}
 	<div class="empty-state text-center py-5">
@@ -70,54 +71,241 @@
 				<line x1="9" y1="14" x2="15" y2="14"/>
 			</svg>
 		</div>
-		<h5>{{ _("Malzeme talebi bulunamadı") }}</h5>
-		<p class="text-muted">{{ _("Henüz malzeme talebi oluşturulmamış") }}</p>
+		<h5>{{ _("No material requests found") }}</h5>
+		<p class="text-muted">{{ _("No material request has been created yet") }}</p>
 	</div>
 	{% endif %}
 </div>
 
+<style>
+.website-list {
+	background-color: var(--fg-color);
+	padding: 0 var(--padding-lg);
+	border-radius: var(--border-radius-md);
+}
+
+.transaction-list-item {
+	padding: 1rem 0;
+	border-bottom: 1px solid var(--border-color);
+	position: relative;
+	cursor: pointer;
+}
+
+.transaction-list-item:hover {
+	background-color: #f8f9fa;
+}
+
+.transaction-list-item:only-child,
+.transaction-list-item:last-child {
+	border: 0;
+}
+
+.transaction-item-link {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	text-decoration: none;
+	opacity: 0;
+	overflow: hidden;
+	text-indent: -9999px;
+	z-index: 1;
+	pointer-events: auto;
+}
+
+.transaction-list-item > .row {
+	position: relative;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.transaction-list-item > .row > * {
+	pointer-events: none;
+}
+
+.transaction-list-item .btn,
+.transaction-list-item button {
+	position: relative;
+	z-index: 2;
+	pointer-events: auto !important;
+}
+
+.action-buttons {
+	display: flex;
+	gap: 0.5rem;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	position: relative;
+	z-index: 2;
+}
+
+.action-buttons .btn,
+.action-buttons a.btn {
+	white-space: nowrap;
+	position: relative;
+	z-index: 2;
+	text-decoration: none;
+	cursor: pointer;
+	pointer-events: auto !important;
+}
+
+.transaction-list-item .col-sm-2.text-right {
+	pointer-events: auto !important;
+	z-index: 10;
+}
+
+.list-item-name {
+	font-size: var(--font-size-sm);
+	color: var(--text-color);
+}
+
+.transaction-time {
+	margin-top: 0.25rem;
+}
+
+.indicator-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.375rem 0.875rem;
+	border-radius: 1rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1.2;
+	vertical-align: middle;
+}
+
+.indicator-pill.gray {
+	background-color: #e0e0e0;
+	color: #666;
+}
+
+.indicator-pill.green {
+	background-color: #d4edda;
+	color: #155724;
+}
+
+.indicator-pill.red {
+	background-color: #f8d7da;
+	color: #721c24;
+}
+
+.indicator-pill.blue {
+	background-color: #e3f2fd;
+	color: #1976d2;
+}
+
+.list-item-status {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+</style>
+
 <script>
 frappe.ready(function() {
-	$('.add-to-cart-btn').on('click', function() {
-		const $btn = $(this);
-		const mr_name = $btn.data('mr-name');
+	// Action buttons tıklamasını satır link'inden ayır
+	$(document).on('click', '.action-buttons, .action-buttons *', function(e) {
+		e.stopPropagation();
+	});
+	
+	// Sepete ekleme - global function
+	window.addToCartFromMR = function(mr_name, btnElement) {
+		const $btn = $(btnElement);
 		
-		$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Ekleniyor...") }}');
-		
+		if (!mr_name) {
+			frappe.show_alert({
+				message: '{{ _("Material Request name not found") }}',
+				indicator: 'red'
+			}, 5);
+			return false;
+		}
+
+		const originalHtml = $btn.html();
+		$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Adding...") }}');
+
 		frappe.call({
 			method: 'north_medical_portal.www.api.material_request.add_material_request_to_cart',
 			args: {
 				material_request_name: mr_name
 			},
 			callback: function(r) {
-				$btn.prop('disabled', false).html('<i class="fa fa-shopping-cart"></i> {{ _("Sepete Ekle") }}');
-				
-				if (r.message) {
-					frappe.show_alert({
-						message: r.message.message || r.message,
-						indicator: 'green'
-					}, 5);
+				$btn.prop('disabled', false).html(originalHtml);
+
+				if (r && r.message) {
+					const response = r.message;
+					const message = response.message || response;
+					const itemCount = response.added_items ? response.added_items.length : 0;
+					const hasErrors = response.errors && response.errors.length > 0;
 					
+					// Mesaj göster
+					if (hasErrors && itemCount > 0) {
+						// Bazı ürünler eklendi, bazıları eklenemedi
+						frappe.show_alert({
+							message: message,
+							indicator: 'orange'
+						}, 7);
+					} else if (hasErrors) {
+						// Hiç ürün eklenemedi
+						frappe.show_alert({
+							message: message,
+							indicator: 'red'
+						}, 7);
+					} else {
+						// Başarılı
+						frappe.show_alert({
+							message: message || '{{ _("Items added to cart successfully") }}',
+							indicator: 'green'
+						}, 5);
+					}
+
 					// Sepet sayısını güncelle
 					if (typeof webshop !== 'undefined' && webshop.webshop && webshop.webshop.shopping_cart) {
-						webshop.webshop.shopping_cart.get_cart_count();
+						if (typeof webshop.webshop.shopping_cart.set_cart_count === 'function') {
+							webshop.webshop.shopping_cart.set_cart_count(true);
+						} else if (typeof webshop.webshop.shopping_cart.get_cart_count === 'function') {
+							webshop.webshop.shopping_cart.get_cart_count();
+						}
 					}
-					
-					// 2 saniye sonra sepete yönlendir
-					setTimeout(function() {
-						window.location.href = r.message.cart_url || '/cart';
-					}, 2000);
+
+					// Sadece başarılı durumda sepete yönlendir
+					if (itemCount > 0 && !hasErrors) {
+						setTimeout(function() {
+							const cartUrl = (response.cart_url) ? response.cart_url : '/cart';
+							window.location.href = cartUrl;
+						}, 2000);
+					}
+				} else {
+					frappe.show_alert({
+						message: '{{ _("Unexpected response from server") }}',
+						indicator: 'orange'
+					}, 5);
 				}
 			},
 			error: function(r) {
-				$btn.prop('disabled', false).html('<i class="fa fa-shopping-cart"></i> {{ _("Sepete Ekle") }}');
+				$btn.prop('disabled', false).html(originalHtml);
+				
+				let errorMessage = '{{ _("An error has occurred") }}';
+				if (r && r.message) {
+					if (typeof r.message === 'string') {
+						errorMessage = r.message;
+					} else if (r.message.message) {
+						errorMessage = r.message.message;
+					} else if (r.message.exc) {
+						errorMessage = r.message.exc;
+					}
+				}
+				
 				frappe.show_alert({
-					message: r.message || '{{ _("Bir hata oluştu") }}',
+					message: errorMessage,
 					indicator: 'red'
 				}, 5);
 			}
 		});
-	});
+		
+		return false;
+	};
+
 });
 </script>
 {% endblock %}

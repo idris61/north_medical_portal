@@ -48,7 +48,6 @@ def add_material_issue_to_portal_settings():
 			portal_settings.flags.ignore_permissions = True
 			portal_settings.save()
 			frappe.db.commit()
-			print("✅ Malzeme Çıkışı menü öğesi Portal Settings'e eklendi")
 		else:
 			# Zaten varsa, enabled olduğundan emin ol
 			if not existing_item[0].enabled:
@@ -56,15 +55,11 @@ def add_material_issue_to_portal_settings():
 				portal_settings.flags.ignore_permissions = True
 				portal_settings.save()
 				frappe.db.commit()
-				print("✅ Malzeme Çıkışı menü öğesi aktifleştirildi")
-			else:
-				print("ℹ️  Malzeme Çıkışı menü öğesi zaten mevcut ve aktif")
 				
 	except Exception as e:
 		frappe.log_error(
 			title="Portal Settings Setup Error",
 			message=f"Error adding material issue to portal settings: {str(e)}"
 		)
-		print(f"❌ Hata: {str(e)}")
 		raise
 

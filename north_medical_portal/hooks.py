@@ -18,6 +18,9 @@ update_website_context = [
 # Installation
 after_install = "north_medical_portal.setup.install.after_install"
 
+# After Migrate - Portal menu'yu düzenle
+after_migrate = "north_medical_portal.setup.fix_portal_menu.fix_portal_menu"
+
 # Document Events
 doc_events = {
 	"Delivery Note": {
@@ -45,7 +48,10 @@ website_route_rules = [
 	{"from_route": "/portal/stock-entries", "to_route": "portal/stock-entries"},
 	{"from_route": "/portal/material-issue", "to_route": "portal/material-issue"},
 	{"from_route": "/portal/material-issue/new", "to_route": "portal/material-issue/new"},
+	{"from_route": "/portal/material-issue/edit/<name>", "to_route": "portal/material-issue/edit"},
 	{"from_route": "/portal/stock-entry/<name>", "to_route": "portal/stock-entry"},
+	{"from_route": "/portal/material-request/<name>", "to_route": "portal/material-request-detail"},
+	{"from_route": "/portal/stock-summary-print", "to_route": "portal/stock-summary-print"},
 ]
 
 # Fixtures
@@ -56,11 +62,16 @@ override_whitelisted_methods = {
 	"frappe.www.login.get_context": "north_medical_portal.www.login.get_context"
 }
 
+# Website Permissions
+has_website_permission = {
+	"Material Request": "north_medical_portal.utils.material_request_permission.has_website_permission"
+}
+
 # Portal Menu Items (via hooks - sidebar'a eklenir)
 # Not: Portal Settings'e otomatik eklenmez, setup script ile eklenir
 portal_menu_items = [
 	{
-		"title": "Stok Özeti",
+		"title": "Stock Summary",  # Use English source text for translation
 		"route": "/portal/stock",
 		"reference_doctype": None,
 		"role": "Customer",

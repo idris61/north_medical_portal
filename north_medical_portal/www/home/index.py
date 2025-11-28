@@ -424,9 +424,6 @@ def get_context(context):
 	context.news_posts = get_news_posts()
 	context.has_news = len(context.news_posts) > 0
 	
-	# Debug: Her zaman log
-	frappe.log_error(f"News posts count: {len(context.news_posts)}, has_news: {context.has_news}", "Homepage News Debug")
-	
 	# Ortaklar / Markalar
 	context.partners = get_partners()
 	context.has_partners = len(context.partners) > 0

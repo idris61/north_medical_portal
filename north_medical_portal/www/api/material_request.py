@@ -69,8 +69,14 @@ def add_material_request_to_cart(material_request_name):
 	"""Material Request'teki ürünleri webshop sepetine ekle"""
 	user_company = validate_dealer_access()
 	
+	if not material_request_name:
+		frappe.throw(_("Material Request name is required"), frappe.ValidationError)
+	
 	# Material Request'i al
-	mr = frappe.get_doc("Material Request", material_request_name)
+	try:
+		mr = frappe.get_doc("Material Request", material_request_name)
+	except frappe.DoesNotExistError:
+		frappe.throw(_("Material Request not found"), frappe.DoesNotExistError)
 	
 	# Kullanıcının şirketine ait mi kontrol et
 	if mr.company != user_company:
@@ -80,39 +86,79 @@ def add_material_request_to_cart(material_request_name):
 	if mr.material_request_type != "Purchase":
 		frappe.throw(_("Sadece 'Purchase' tipindeki Material Request'ler sepete eklenebilir"))
 	
+	# İptal edilmiş belgeler sepete eklenemez
+	if mr.docstatus == 2:
+		frappe.throw(_("İptal edilmiş Material Request'ler sepete eklenemez"))
+	
 	# Webshop sepetine ekle
 	from webshop.webshop.shopping_cart.cart import update_cart as webshop_update_cart
 	from frappe.utils import flt
 	
 	added_items = []
 	errors = []
+	skipped_items = []
+	
+	if not mr.items:
+		frappe.throw(_("Bu Material Request'te ürün bulunmamaktadır"))
 	
 	for item in mr.items:
+		if not item.item_code:
+			continue
+			
 		# Sadece henüz sipariş verilmemiş ürünleri ekle
 		ordered_qty = flt(item.ordered_qty or 0)
 		stock_qty = flt(item.stock_qty or item.qty or 0)
 		
 		if ordered_qty < stock_qty:
 			remaining_qty = stock_qty - ordered_qty
-			try:
-				# Sepete ekle
-				webshop_update_cart(
-					item_code=item.item_code,
-					qty=remaining_qty,
-					uom=item.uom or item.stock_uom
-				)
-				added_items.append({
-					"item_code": item.item_code,
-					"qty": remaining_qty
-				})
-			except Exception as e:
-				errors.append(f"{item.item_code}: {str(e)}")
+			if remaining_qty > 0:
+				try:
+					# Sepete ekle
+					webshop_update_cart(
+						item_code=item.item_code,
+						qty=remaining_qty,
+						uom=item.uom or item.stock_uom
+					)
+					added_items.append({
+						"item_code": item.item_code,
+						"item_name": item.item_name or item.item_code,
+						"qty": remaining_qty
+					})
+				except Exception as e:
+					error_msg = str(e)
+					errors.append({
+						"item_code": item.item_code,
+						"item_name": item.item_name or item.item_code,
+						"error": error_msg
+					})
+					frappe.log_error(f"Sepete ekleme hatası - Item: {item.item_code}, Error: {error_msg}", "Add Material Request to Cart")
+		else:
+			skipped_items.append({
+				"item_code": item.item_code,
+				"item_name": item.item_name or item.item_code,
+				"reason": _("Already ordered")
+			})
 	
+	# Hiç ürün eklenemediyse hata ver
+	if not added_items and errors:
+		error_list = ", ".join([f"{e['item_code']}" for e in errors])
+		frappe.throw(_("Ürünler sepete eklenemedi: {0}").format(error_list))
+	
+	if not added_items and not errors:
+		frappe.throw(_("Sepete eklenecek ürün bulunamadı. Tüm ürünler zaten sipariş edilmiş olabilir."))
+	
+	# Mesaj oluştur
 	if errors:
-		frappe.throw(_("Bazı ürünler sepete eklenemedi: {0}").format(", ".join(errors)))
+		message = _("{0} ürün sepete eklendi").format(len(added_items))
+		if len(errors) > 0:
+			message += _(", {0} ürün eklenemedi").format(len(errors))
+	else:
+		message = _("{0} ürün sepete eklendi").format(len(added_items))
 	
 	return {
-		"message": _("{0} ürün sepete eklendi").format(len(added_items)),
+		"message": message,
 		"added_items": added_items,
+		"errors": errors,
+		"skipped_items": skipped_items,
 		"cart_url": "/cart"
 	}

@@ -34,15 +34,17 @@ def update_material_request_from_sales_order(sales_order, method=None):
 				mri.stock_qty,
 				mri.ordered_qty,
 				mr.material_request_type,
-				mr.status
+				mr.status,
+				mr.docstatus
 			FROM `tabMaterial Request Item` mri
 			INNER JOIN `tabMaterial Request` mr ON mri.parent = mr.name
 			WHERE 
 				mr.material_request_type = 'Purchase'
-				AND mr.docstatus = 1
+				AND mr.docstatus < 2
 				AND mri.item_code = %(item_code)s
 				AND CAST(mri.stock_qty AS DECIMAL(18,6)) > CAST(COALESCE(mri.ordered_qty, 0) AS DECIMAL(18,6))
 				AND mr.company = %(company)s
+				AND mr.status != 'Ordered'
 			ORDER BY mr.creation DESC
 		""", {
 			"item_code": so_item.item_code,
@@ -54,12 +56,6 @@ def update_material_request_from_sales_order(sales_order, method=None):
 		
 		# Sales Order'daki qty'yi Material Request Item'lara dağıt
 		remaining_qty = flt(so_item.stock_qty or so_item.qty)
-		
-		# Debug: Bulunan Material Request'leri göster
-		frappe.log_error(
-			title=f"MR Update Debug: {so_item.item_code}",
-			message=f"Found {len(mr_items)} MR items for {so_item.item_code}, remaining_qty={remaining_qty}"
-		)
 		
 		for mr_item in mr_items:
 			if remaining_qty <= 0:
@@ -91,32 +87,39 @@ def update_material_request_from_sales_order(sales_order, method=None):
 	
 	for mr_name, mr_items_dict in material_requests_to_update.items():
 		try:
-			# Material Request Item'larını direkt database'de güncelle (submit edilmiş dokümanlar için)
+			# Material Request'i al
+			mr_doc = frappe.get_doc("Material Request", mr_name)
+			
+			# Material Request Item'larını güncelle
 			for mri_name, mri_data in mr_items_dict.items():
 				new_ordered_qty = flt(mri_data["current_ordered_qty"]) + flt(mri_data["to_add_qty"])
-				frappe.db.set_value("Material Request Item", mri_name, "ordered_qty", new_ordered_qty)
+				
+				# Item'ı bul ve güncelle
+				for item in mr_doc.items:
+					if item.name == mri_name:
+						item.ordered_qty = new_ordered_qty
+						break
 			
 			# Material Request'in per_ordered alanını güncelle ve durumunu hesapla
-			# Database'den direkt oku
-			items_data = frappe.db.sql("""
-				SELECT SUM(stock_qty) as total_stock, SUM(ordered_qty) as total_ordered
-				FROM `tabMaterial Request Item`
-				WHERE parent = %s
-			""", mr_name, as_dict=True)
+			total_stock = sum([flt(item.stock_qty) for item in mr_doc.items])
+			total_ordered = sum([flt(item.ordered_qty or 0) for item in mr_doc.items])
+			per_ordered = (total_ordered / total_stock * 100) if total_stock > 0 else 0
 			
-			if items_data and items_data[0].total_stock:
-				total_ordered = flt(items_data[0].total_ordered or 0)
-				total_stock = flt(items_data[0].total_stock)
-				per_ordered = (total_ordered / total_stock * 100) if total_stock > 0 else 0
-				
-				frappe.db.set_value("Material Request", mr_name, "per_ordered", per_ordered)
-				
-				# Durumu güncelle
-				mr_doc = frappe.get_doc("Material Request", mr_name)
-				mr_doc.reload()
-				mr_doc.set_status(update=True)
-				frappe.db.set_value("Material Request", mr_name, "status", mr_doc.status)
-				frappe.db.commit()
+			mr_doc.per_ordered = per_ordered
+			
+			# Durumu güncelle
+			mr_doc.set_status(update=True)
+			
+			# Eğer Material Request Draft ise, submit et
+			if mr_doc.docstatus == 0:
+				mr_doc.flags.ignore_permissions = True
+				mr_doc.submit()
+			else:
+				# Submit edilmişse sadece kaydet
+				mr_doc.flags.ignore_permissions = True
+				mr_doc.save()
+			
+			frappe.db.commit()
 			
 		except Exception as e:
 			frappe.log_error(

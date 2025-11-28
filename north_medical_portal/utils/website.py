@@ -450,6 +450,16 @@ def get_back_to_top_html():
 
 def update_website_context(context):
 	"""Website context'e CSS ekle ve custom field'ları ekle"""
+	# Override portal sidebar items function for language-aware caching
+	# This is done here because update_website_context is called after all modules are loaded
+	try:
+		import frappe.website.utils
+		from north_medical_portal.utils.portal_menu import get_portal_sidebar_items
+		if not hasattr(frappe.website.utils.get_portal_sidebar_items, '_overridden'):
+			frappe.website.utils.get_portal_sidebar_items = get_portal_sidebar_items
+			frappe.website.utils.get_portal_sidebar_items._overridden = True
+	except (ImportError, AttributeError):
+		pass
 	# Login sayfası için özel işlemler
 	if hasattr(frappe.local, 'request') and frappe.local.request:
 		path = getattr(frappe.local.request, 'path', '') or ''

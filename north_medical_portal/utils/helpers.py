@@ -55,8 +55,7 @@ def get_user_company():
 			if company_exists and company_name != "North Medical":
 				return company_name
 	
-	# 3. User'ın bağlı olduğu Company'yi bul (geçici çözüm)
-	# TODO: User-Company ilişkisi düzgün kurulduğunda bu kısım kaldırılacak
+	# 3. User'ın bağlı olduğu Company'yi bul
 	companies = frappe.get_all(
 		"Company",
 		filters={"name": ["!=", "North Medical"]},

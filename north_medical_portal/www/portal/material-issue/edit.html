@@ -1,13 +1,13 @@
 {% extends "templates/web.html" %}
 
-{% block title %}{{ _("New Material Issue") }}{% endblock %}
+{% block title %}{{ _("Edit Material Issue") }}{% endblock %}
 
 {% block page_content %}
 <div class="portal-page">
 	<div class="page-header d-flex justify-content-between align-items-center mb-4">
 		<div>
 			<span class="text-muted small" id="save-status">{{ _("Not Saved") }}</span>
-			<h3 class="mb-1 mt-2">{{ _("New Material Issue") }}</h3>
+			<h3 class="mb-1 mt-2">{{ _("Edit Material Issue") }}: {{ stock_entry_name }}</h3>
 		</div>
 		<div>
 			<a href="/portal/material-issue" class="btn btn-link">
@@ -74,30 +74,7 @@
 							</tr>
 						</thead>
 						<tbody id="items-tbody">
-							<tr class="item-row">
-								<td class="text-center align-middle">
-									<input type="checkbox" class="item-checkbox" data-row-index="0">
-								</td>
-								<td class="text-center align-middle row-number">1</td>
-								<td style="position: relative;">
-									<input type="text" class="form-control form-control-sm item-code" 
-										placeholder="{{ _('Search item code or name...') }}" 
-										autocomplete="off"
-										required>
-									<small class="text-muted item-name d-block mt-1" style="display: none;"></small>
-								</td>
-								<td class="align-middle">
-									<input type="number" class="form-control form-control-sm item-qty" 
-										step="1" min="1" placeholder="0" required
-										oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-								</td>
-								<td class="align-middle text-center">
-									<span class="available-qty text-muted">-</span>
-								</td>
-								<td class="align-middle text-center">
-									<span class="item-uom text-muted">-</span>
-								</td>
-							</tr>
+							<!-- Items will be loaded from API -->
 						</tbody>
 					</table>
 				</div>
@@ -128,7 +105,7 @@
 					{{ _("Cancel") }}
 				</a>
 				<button type="submit" class="btn btn-primary" id="submit-btn">
-					<i class="fa fa-save"></i> {{ _("Save") }}
+					<i class="fa fa-save"></i> {{ _("Update") }}
 				</button>
 			</div>
 		</form>
@@ -549,6 +526,7 @@ frappe.ready(function() {
 	const $postingDate = $('#posting-date');
 	const $addItemBtn = $('#add-item-btn');
 	const $submitBtn = $('#submit-btn');
+	const stockEntryName = '{{ stock_entry_name }}';
 	
 	// Initialize warehouse - check both select and hidden input
 	let selectedWarehouse = null;
@@ -575,10 +553,114 @@ frappe.ready(function() {
 	let searchTimeouts = {};
 	let autocompleteHighlightIndex = -1;
 
-	// Set today's date
-	const today = new Date().toISOString().split('T')[0];
-	$postingDate.val(today);
-	
+	// Load existing document data
+	frappe.call({
+		method: 'north_medical_portal.www.api.stock_entry.get_stock_entry_for_edit',
+		args: {
+			stock_entry_name: stockEntryName
+		},
+		callback: function(r) {
+			if (r.message) {
+				const data = r.message;
+				
+				// Set posting date
+				if (data.posting_date) {
+					$postingDate.val(data.posting_date);
+				} else {
+					const today = new Date().toISOString().split('T')[0];
+					$postingDate.val(today);
+				}
+				
+				// Set warehouse
+				if (data.warehouse) {
+					selectedWarehouse = data.warehouse;
+					if ($warehouseSelect.is('select')) {
+						$warehouseSelect.val(data.warehouse);
+					} else {
+						$('#warehouse-select[type="hidden"]').val(data.warehouse);
+					}
+				}
+				
+				// Set remarks
+				if (data.remarks) {
+					$('#remarks').val(data.remarks);
+				}
+				
+				// Load items
+				if (data.items && data.items.length > 0) {
+					$itemsTbody.empty();
+					data.items.forEach(function(item, index) {
+						addItemRow(item.item_code, item.item_name, item.qty, item.uom);
+					});
+					updateRowNumbers();
+				} else {
+					// Add at least one empty row
+					addItemRow();
+				}
+			}
+		},
+		error: function(r) {
+			showError(r.message || '{{ _("Error loading document") }}');
+		}
+	});
+
+	// Add item row function
+	function addItemRow(itemCode, itemName, qty, uom) {
+		const $firstRow = $('.item-row').first();
+		const $newRow = $firstRow.length > 0 ? $firstRow.clone(true) : createNewRow();
+		
+		// Clear and set values
+		const rowCount = $('.item-row').length;
+		$newRow.find('.row-number').text(rowCount + 1);
+		$newRow.find('.item-checkbox').attr('data-row-index', rowCount).prop('checked', false);
+		const newInputId = 'item-code-' + Date.now() + '-' + rowIndex++;
+		$newRow.find('.item-code').val(itemCode || '').attr('id', newInputId).removeClass('is-invalid');
+		if (itemCode) {
+			$newRow.find('.item-code').data('item-code', itemCode);
+		}
+		$newRow.find('.item-qty').val(qty || '').removeClass('is-invalid');
+		$newRow.find('.item-name').text(itemName || '').toggle(itemName ? true : false);
+		$newRow.find('.available-qty').text('-').removeClass('low-stock in-stock');
+		$newRow.find('.item-uom').text(uom || '-');
+		
+		if ($firstRow.length === 0) {
+			$itemsTbody.append($newRow);
+		} else {
+			$itemsTbody.append($newRow);
+		}
+		
+		// If item code is set, update item info
+		if (itemCode && selectedWarehouse) {
+			updateItemInfo($newRow, itemCode);
+		}
+	}
+
+	// Create new row template
+	function createNewRow() {
+		return $('<tr class="item-row">' +
+			'<td class="text-center align-middle">' +
+				'<input type="checkbox" class="item-checkbox" data-row-index="0">' +
+			'</td>' +
+			'<td class="text-center align-middle row-number">1</td>' +
+			'<td style="position: relative;">' +
+				'<input type="text" class="form-control form-control-sm item-code" ' +
+					'placeholder="{{ _('Search item code or name...') }}" ' +
+					'autocomplete="off" required>' +
+				'<small class="text-muted item-name d-block mt-1" style="display: none;"></small>' +
+			'</td>' +
+			'<td class="align-middle">' +
+				'<input type="number" class="form-control form-control-sm item-qty" ' +
+					'step="1" min="1" placeholder="0" required ' +
+					'oninput="this.value = this.value.replace(/[^0-9]/g, \'\')">' +
+			'</td>' +
+			'<td class="align-middle text-center">' +
+				'<span class="available-qty text-muted">-</span>' +
+			'</td>' +
+			'<td class="align-middle text-center">' +
+				'<span class="item-uom text-muted">-</span>' +
+			'</td>' +
+		'</tr>');
+	}
 
 	// Warehouse change handler - only if select exists (not hidden input)
 	if ($warehouseSelect.length > 0 && $warehouseSelect.is('select')) {
@@ -586,7 +668,11 @@ frappe.ready(function() {
 			selectedWarehouse = $(this).val();
 			// Clear all item info when warehouse changes
 			$('.item-row').each(function() {
-				clearItemRow($(this));
+				const $row = $(this);
+				const itemCode = $row.find('.item-code').data('item-code');
+				if (itemCode) {
+					updateItemInfo($row, itemCode);
+				}
 			});
 			// Clear all search timeouts
 			Object.keys(searchTimeouts).forEach(function(key) {
@@ -938,29 +1024,13 @@ frappe.ready(function() {
 	$addItemBtn.on('click', function(e) {
 		e.preventDefault();
 		e.stopPropagation();
-		rowIndex++;
-		const $firstRow = $('.item-row').first();
-		const $newRow = $firstRow.clone(true); // Clone with events
-		
-		// Clear values and update
-		const rowCount = $('.item-row').length;
-		$newRow.find('.row-number').text(rowCount + 1);
-		$newRow.find('.item-checkbox').attr('data-row-index', rowCount).prop('checked', false);
-		const newInputId = 'item-code-' + Date.now() + '-' + rowIndex;
-		$newRow.find('.item-code').val('').removeData('item-code').attr('id', newInputId).removeClass('is-invalid');
-		$newRow.find('.item-qty').val('').removeAttr('max').removeClass('is-invalid');
-		$newRow.find('.item-name').text('').hide();
-		$newRow.find('.available-qty').text('-').removeClass('low-stock in-stock');
-		$newRow.find('.item-uom').text('-');
-		
-		$itemsTbody.append($newRow);
+		addItemRow();
 		updateRowNumbers();
 		updateDeleteButton();
 		
-		
 		// Focus on new item code input
 		setTimeout(function() {
-			$newRow.find('.item-code').focus();
+			$('.item-row').last().find('.item-code').focus();
 		}, 100);
 	});
 
@@ -1074,23 +1144,24 @@ frappe.ready(function() {
 		}
 
 		// Submit
-		$submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Processing...") }}');
+		$submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Updating...") }}');
 		$('#save-status').text('{{ _("Saving...") }}');
 		
 		frappe.call({
-			method: 'north_medical_portal.www.api.stock_entry.create_material_issue',
+			method: 'north_medical_portal.www.api.stock_entry.update_stock_entry',
 			args: {
+				stock_entry_name: stockEntryName,
 				warehouse: selectedWarehouse,
 				items: items,
 				posting_date: $postingDate.val(),
 				remarks: $('#remarks').val()
 			},
 			callback: function(r) {
-				$submitBtn.prop('disabled', false).html('<i class="fa fa-save"></i> {{ _("Save") }}');
+				$submitBtn.prop('disabled', false).html('<i class="fa fa-save"></i> {{ _("Update") }}');
 				
 				if (r.message && r.message.name) {
-					$('#save-status').text('{{ _("Saved") }}');
-					showSuccess(`{{ _("Material issue created successfully") }}: ${r.message.name}`);
+					$('#save-status').text('{{ _("Saved and Submitted") }}');
+					showSuccess(`{{ _("Material issue updated and submitted successfully") }}: ${r.message.name}`);
 					setTimeout(function() {
 						window.location.href = '/portal/material-issue';
 					}, 2000);
@@ -1100,7 +1171,7 @@ frappe.ready(function() {
 				}
 			},
 			error: function(r) {
-				$submitBtn.prop('disabled', false).html('<i class="fa fa-save"></i> {{ _("Save") }}');
+				$submitBtn.prop('disabled', false).html('<i class="fa fa-save"></i> {{ _("Update") }}');
 				$('#save-status').text('{{ _("Not Saved") }}');
 				let errorMsg = '{{ _("An error occurred") }}';
 				if (r.message) {
@@ -1160,10 +1231,8 @@ frappe.ready(function() {
 		
 		// Initialize delete button state
 		updateDeleteButton();
-		
-		// Focus on first item code input
-		$('.item-code').first().focus();
 	}, 500);
 });
 </script>
 {% endblock %}
+

@@ -1,0 +1,156 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Stock Summary") }}{% endblock %}
+
+{% block page_content %}
+<div class="print-format">
+	<div class="print-heading">
+		<h2>{{ _("Stock Summary") }}</h2>
+		<div class="doc-name">{{ company }}</div>
+	</div>
+	
+	<div class="info-section">
+		<div class="info-row">
+			<div class="info-label">{{ _("Date") }}:</div>
+			<div class="info-value">{{ frappe.utils.format_date(frappe.utils.nowdate(), 'medium') }}</div>
+		</div>
+	</div>
+	
+	{% if stock_data and stock_data|length > 0 %}
+	<table class="items-table">
+		<thead>
+			<tr>
+				<th style="width: 5%;">{{ _("Sr") }}</th>
+				<th style="width: 40%;">{{ _("Item") }}</th>
+				<th style="width: 20%;">{{ _("Warehouse") }}</th>
+				<th style="width: 15%;" class="text-right">{{ _("Current Stock") }}</th>
+				<th style="width: 10%;" class="text-right">{{ _("Min. Stock") }}</th>
+				<th style="width: 10%;" class="text-right">{{ _("Order Qty") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in stock_data %}
+			<tr>
+				<td>{{ loop.index }}</td>
+				<td>
+					<strong>{{ item.item_code }}</strong>
+					{% if item.item_name and item.item_name != item.item_code %}
+					<br><small style="color: #666;">{{ item.item_name }}</small>
+					{% endif %}
+				</td>
+				<td>{{ item.warehouse_name or item.warehouse }}</td>
+				<td class="text-right">{{ (item.actual_qty or 0)|round(0)|int }}</td>
+				<td class="text-right">{% if item.warehouse_reorder_level %}{{ (item.warehouse_reorder_level)|round(0)|int }}{% else %}-{% endif %}</td>
+				<td class="text-right">{% if item.warehouse_reorder_qty %}{{ (item.warehouse_reorder_qty)|round(0)|int }}{% else %}-{% endif %}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+	<div class="alert alert-info text-center" style="margin: 20px 0; padding: 20px;">
+		<p>{{ _("No stock data available") }}</p>
+		<p class="text-muted small">{{ _("Stock data count") }}: {{ stock_data|length if stock_data else 0 }}</p>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+.print-format {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 12px;
+	line-height: 1.6;
+	color: #333;
+	padding: 20px;
+}
+.print-heading {
+	text-align: center;
+	margin-bottom: 30px;
+	padding-bottom: 20px;
+	border-bottom: 3px solid #2c3e50;
+}
+.print-heading h2 {
+	margin: 0;
+	color: #2c3e50;
+	font-size: 24px;
+	font-weight: bold;
+}
+.print-heading .doc-name {
+	font-size: 18px;
+	color: #7f8c8d;
+	margin-top: 5px;
+}
+.info-section {
+	margin: 20px 0;
+	padding: 15px;
+	background-color: white;
+	border-radius: 5px;
+}
+.info-row {
+	display: flex;
+	margin-bottom: 10px;
+	align-items: center;
+}
+.info-label {
+	font-weight: bold;
+	width: 150px;
+	color: #555;
+	flex-shrink: 0;
+}
+.info-value {
+	flex: 1;
+	color: #333;
+}
+.items-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 20px 0;
+	border: 1px solid #ddd;
+}
+.items-table thead {
+	background-color: transparent;
+	color: #333;
+	border-bottom: 2px solid #333;
+}
+.items-table th {
+	padding: 12px 10px;
+	text-align: left;
+	font-weight: bold;
+	border: 1px solid #ddd;
+	vertical-align: middle;
+}
+.items-table th:first-child {
+	text-align: center;
+	width: 5%;
+}
+.items-table th.text-right {
+	text-align: right;
+}
+.items-table td {
+	padding: 12px 10px;
+	border-bottom: 1px solid #ddd;
+	border-right: 1px solid #eee;
+	vertical-align: top;
+}
+.items-table td:first-child {
+	text-align: center;
+}
+.items-table td.text-right {
+	text-align: right;
+}
+.items-table tbody tr {
+	background-color: white;
+}
+.text-right {
+	text-align: right;
+}
+@media print {
+	.print-format {
+		padding: 20px;
+	}
+	.items-table {
+		page-break-inside: avoid;
+	}
+}
+</style>
+{% endblock %}
+

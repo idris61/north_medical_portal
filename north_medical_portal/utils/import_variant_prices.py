@@ -35,8 +35,6 @@ def get_all_product_detail_urls(max_page: int = 10) -> List[Tuple[str, str]]:
 
 	product_links: List[Tuple[str, str]] = []
 
-	print("\n📡 Ürün detay URL'leri çekiliyor...")
-
 	for page in range(1, max_page + 1):
 		if page == 1:
 			url = base_url
@@ -53,8 +51,6 @@ def get_all_product_detail_urls(max_page: int = 10) -> List[Tuple[str, str]]:
 			if not li_products:
 				break
 
-			print(f"   📄 Liste sayfası {page}: {len(li_products)} ürün")
-
 			for li in li_products:
 				link = li.find("a", href=True)
 				title = li.find("h2") or li.find("h3") or li.find("h4")
@@ -70,10 +66,9 @@ def get_all_product_detail_urls(max_page: int = 10) -> List[Tuple[str, str]]:
 
 			time.sleep(0.3)
 		except Exception as e:
-			print(f"   ⚠️  Liste sayfası {page} hatası: {e}")
+			frappe.log_error(f"Error fetching page {page}: {str(e)}", "Import Variant Prices")
 			break
 
-	print(f"\n📦 Toplam {len(product_links)} ürün detay URL'si bulundu")
 	return product_links
 
 
@@ -96,7 +91,7 @@ def parse_variations_from_html(html_content: str) -> List[Dict]:
 		variations = json.loads(json_text)
 		return variations if isinstance(variations, list) else []
 	except Exception as e:
-		print(f"   ⚠️  JSON parse hatası: {e}")
+		frappe.log_error(f"JSON parse error: {str(e)}", "Import Variant Prices")
 		return []
 
 
@@ -126,7 +121,6 @@ def ensure_uom_exists(uom_name: str) -> None:
 	uom = frappe.new_doc("UOM")
 	uom.uom_name = uom_name
 	uom.insert()
-	print(f"      ➕ UOM oluşturuldu: {uom_name}")
 
 
 def ensure_item_uom(item_code: str, uom_name: str) -> None:
@@ -147,7 +141,6 @@ def ensure_item_uom(item_code: str, uom_name: str) -> None:
 	row.conversion_factor = 1
 
 	item_doc.save()
-	print(f"      ➕ Item UOM eklendi: {item_code} / {uom_name}")
 
 
 def update_item_prices_for_variations(
@@ -168,7 +161,6 @@ def update_item_prices_for_variations(
 
 	matched_item, score = find_matching_item(product_name, all_items, threshold=0.5)
 	if not matched_item or score < 0.5:
-		print(f"   ❌ ERP Item bulunamadı: {product_name}")
 		return 0, 0
 
 	# Burada fiyatı template seviyesinde tutmak istiyoruz.
@@ -219,16 +211,7 @@ def update_item_prices_for_variations(
 					"price_list_rate",
 					float(display_price),
 				)
-				print(
-					f"      ✅ {matched_item.item_code} / {uom_name}: "
-					f"{existing.price_list_rate}€ → {display_price}€"
-				)
 				updated_count += 1
-			else:
-				print(
-					f"      ✓  {matched_item.item_code} / {uom_name}: "
-					f"{display_price}€ (zaten güncel)"
-				)
 		else:
 			ip = frappe.new_doc("Item Price")
 			ip.item_code = matched_item.item_code
@@ -237,10 +220,6 @@ def update_item_prices_for_variations(
 			ip.uom = uom_name
 			ip.price_list_rate = float(display_price)
 			ip.insert()
-			print(
-				f"      ➕ {matched_item.item_code} / {uom_name}: "
-				f"{display_price}€ (yeni, skor: {score:.2f})"
-			)
 			updated_count += 1
 
 		matched_count += 1
@@ -258,10 +237,6 @@ def sync_all_variant_prices():
 	- ERP'de karşılık gelen Item'ı bulur
 	- Her varyant için uygun UOM'u tahmin eder ve Item Price'ı günceller/oluşturur
 	"""
-	print("=" * 70)
-	print("WOO VARIANT → ERP ITEM UOM FİYAT SİNKRONİZASYONU")
-	print("=" * 70)
-
 	price_list_name = "Standard Selling"
 	currency = "EUR"
 
@@ -273,9 +248,6 @@ def sync_all_variant_prices():
 		price_list.selling = 1
 		price_list.enabled = 1
 		price_list.insert()
-		print(f"✅ Price List oluşturuldu: {price_list_name}")
-	else:
-		print(f"✅ Price List mevcut: {price_list_name}")
 
 	# Tüm Item'lar (template + variant)
 	all_items = frappe.db.sql(
@@ -286,8 +258,6 @@ def sync_all_variant_prices():
     """,
 		as_dict=True,
 	)
-
-	print(f"\n📦 ERP'de {len(all_items)} aktif Item bulundu\n")
 
 	# Web ürünleri
 	products = get_all_product_detail_urls()
@@ -304,16 +274,11 @@ def sync_all_variant_prices():
 		try:
 			resp = requests.get(url, timeout=30, headers=headers)
 			if resp.status_code != 200:
-				print(f"   ⚠️  {name[:50]}... için HTTP {resp.status_code}")
 				continue
 
 			variations = parse_variations_from_html(resp.text)
 			if not variations:
 				continue
-
-			print(f"\n🧩 {name[:80]}...")
-			print(f"   🌐 {url}")
-			print(f"   🎯 {len(variations)} varyant bulundu")
 
 			matched, updated = update_item_prices_for_variations(
 				name, variations, all_items, price_list_name=price_list_name, currency=currency
@@ -326,16 +291,10 @@ def sync_all_variant_prices():
 			# Çok hızlı gitmemek için ufak bekleme
 			time.sleep(0.5)
 		except Exception as e:
-			print(f"   ⚠️  {name[:50]}... hata: {e}")
+			frappe.log_error(f"Error processing {name}: {str(e)}", "Import Variant Prices")
 			continue
 
 	frappe.db.commit()
-
-	print("\n📊 Özet:")
-	print(f"   🔢 Toplam varyant: {total_variations}")
-	print(f"   ✅ Eşleşen varyant: {total_matched}")
-	print(f"   💰 Güncellenen/oluşturulan Item Price: {total_updated}")
-	print("\n✅ WooCommerce varyant fiyatları ERP UOM fiyatları ile senkronize edildi.")
 
 
 
@@ -352,10 +311,6 @@ def cleanup_legacy_item_prices():
 	price_list_name = "Standard Selling"
 	currency = "EUR"
 
-	print("=" * 70)
-	print("LEGACY ITEM PRICE TEMİZLİĞİ")
-	print("=" * 70)
-
 	# UOM'lu fiyatı olan item'lar
 	items_with_uom = frappe.db.sql(
 		"""
@@ -371,7 +326,6 @@ def cleanup_legacy_item_prices():
 	)
 
 	if not items_with_uom:
-		print("❌ UOM'lu fiyatı olan item bulunamadı, temizlenecek kayıt yok.")
 		return
 
 	item_codes = [row.item_code for row in items_with_uom]

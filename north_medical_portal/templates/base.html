@@ -1,0 +1,18 @@
+{% extends "frappe/templates/base.html" %}
+
+{% block base_scripts %}
+	{{ super() }}
+{% endblock %}
+
+{%- block script %}
+	{%- for link in web_include_js %}
+		{%- if link == "website_script.js" %}
+			{# Disable preload for website_script.js to avoid browser warning #}
+			{{ include_script(link, preload=False) }}
+		{%- else %}
+			{{ include_script(link) }}
+		{%- endif %}
+	{%- endfor -%}
+	{{ super() }}
+{%- endblock %}
+
