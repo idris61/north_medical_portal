@@ -24,9 +24,15 @@ def get_portal_sidebar_items():
 		portal_settings = frappe.get_doc("Portal Settings", "Portal Settings")
 
 		def add_items(sidebar_items, items):
+			# Admin kullanıcılar için tüm menüleri göster
+			from north_medical_portal.utils.helpers import is_admin_user
+			is_admin = is_admin_user()
+			
 			for d in items:
-				if d.get("enabled") and ((not d.get("role")) or d.get("role") in roles):
-					sidebar_items.append(d.as_dict() if isinstance(d, Document) else d)
+				if d.get("enabled"):
+					# Admin kullanıcılar için role kontrolünü bypass et
+					if is_admin or (not d.get("role")) or d.get("role") in roles:
+						sidebar_items.append(d.as_dict() if isinstance(d, Document) else d)
 
 		if not portal_settings.hide_standard_menu:
 			add_items(sidebar_items, portal_settings.get("menu"))

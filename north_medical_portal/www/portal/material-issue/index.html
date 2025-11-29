@@ -17,7 +17,7 @@
 		<div class="web-list-item transaction-list-item" data-entry-name="{{ entry.name }}" data-docstatus="{{ entry.docstatus }}">
 			<a href="/portal/stock-entry/{{ entry.name }}" class="transaction-item-link"></a>
 			<div class="row align-items-center">
-				<div class="col-sm-3">
+				<div class="col-sm-2">
 					<span class="list-item-name font-weight-bold">{{ entry.name }}</span>
 					<div class="small text-muted transaction-time">
 						{{ frappe.format_date(entry.posting_date) if entry.posting_date else frappe.format_date(entry.creation) }}
@@ -32,15 +32,17 @@
 						<span class="indicator-pill red list-item-status">{{ _("Cancelled") }}</span>
 					{% endif %}
 				</div>
-				<div class="col-sm-4">
+				<div class="col-sm-2">
 					<div class="small text-muted">
-						{{ _("Warehouse") }}: {{ entry.warehouse_display or entry.to_warehouse or entry.from_warehouse or "-" }}
+						<strong>{{ _("Issued By") }}:</strong><br>
+						{{ entry.modified_by_name or entry.modified_by or entry.owner_name or entry.owner or "-" }}
 					</div>
-					{% if entry.remarks %}
+				</div>
+				<div class="col-sm-3">
 					<div class="small text-muted">
-						{{ entry.remarks[:50] }}{% if entry.remarks|length > 50 %}...{% endif %}
+						<strong>{{ _("Warehouse") }}:</strong><br>
+						{{ entry.warehouse_display or entry.to_warehouse or entry.from_warehouse or "-" }}
 					</div>
-					{% endif %}
 				</div>
 				<div class="col-sm-3 text-right">
 					<div class="action-buttons">

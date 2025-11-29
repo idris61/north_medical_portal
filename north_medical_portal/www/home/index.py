@@ -194,6 +194,12 @@ def get_category_color_index(category_name, category_title):
 def get_news_posts():
 	"""Son haberleri getir - Blog Post'lardan"""
 	try:
+		# Get current language
+		current_language = frappe.local.lang or "en"
+		
+		# Import translation function
+		from webshop.webshop.utils.translation import get_translated_text
+		
 		# Yayınlanmış blog post'ları al
 		posts = frappe.get_all(
 			"Blog Post",
@@ -211,6 +217,16 @@ def get_news_posts():
 		
 		post_list = []
 		for post in posts:
+			# Translate title
+			translated_title = get_translated_text(post.title or "", current_language)
+			if not translated_title or translated_title == post.title:
+				translated_title = post.title or ""
+			
+			# Translate intro
+			translated_intro = get_translated_text(post.blog_intro or "", current_language)
+			if not translated_intro or translated_intro == post.blog_intro:
+				translated_intro = post.blog_intro or ""
+			
 			# Tarih formatla - basit ve güvenli
 			formatted_date = ""
 			if post.published_on:
@@ -251,12 +267,9 @@ def get_news_posts():
 				else:
 					image_url = f"/files/{post.meta_image}"
 			
-			# Blog intro'yu al
-			intro_text = post.blog_intro or ""
-			
 			post_list.append({
-				"title": post.title or "",
-				"intro": intro_text,
+				"title": translated_title,
+				"intro": translated_intro,
 				"date": formatted_date,
 				"comments_status": comments_status,
 				"route": post.route or f"/blog/{post.name}",

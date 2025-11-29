@@ -56,10 +56,51 @@ def get_material_requests():
 	material_requests = frappe.get_all(
 		"Material Request",
 		filters={"company": user_company},
-		fields=["name", "status", "material_request_type", "schedule_date", "creation", "docstatus", "owner", "transaction_date"],
+		fields=["name", "status", "material_request_type", "schedule_date", "creation", "docstatus", "owner", "transaction_date", "set_warehouse"],
 		order_by="creation desc",
 		limit=100
 	)
+	
+	# Her Material Request için hedef depo ve requested_by bilgilerini ekle
+	for request in material_requests:
+		# Talebi oluşturan kullanıcı bilgisi
+		if request.owner:
+			request.owner_name = frappe.utils.get_fullname(request.owner)
+			# requested_by field'ı varsa onu kullan
+			mr_doc = frappe.get_doc("Material Request", request.name)
+			if hasattr(mr_doc, 'requested_by') and mr_doc.requested_by:
+				request.requested_by_name = frappe.utils.get_fullname(mr_doc.requested_by)
+			else:
+				request.requested_by_name = request.owner_name
+		
+		# Hedef depo bilgisini belirle
+		if request.set_warehouse:
+			request.target_warehouse = request.set_warehouse
+			request.target_warehouse_display = request.set_warehouse
+		else:
+			# Item'lardaki warehouse bilgilerini kontrol et
+			items = frappe.get_all(
+				"Material Request Item",
+				filters={"parent": request.name},
+				fields=["warehouse"]
+			)
+			warehouses = set()
+			for item in items:
+				if item.warehouse:
+					warehouses.add(item.warehouse)
+			
+			if len(warehouses) == 1:
+				# Tüm item'lar aynı depoda
+				request.target_warehouse = list(warehouses)[0]
+				request.target_warehouse_display = list(warehouses)[0]
+			elif len(warehouses) > 1:
+				# Farklı depolar var
+				request.target_warehouse = None
+				request.target_warehouse_display = _("Per Item")
+			else:
+				# Hiç depo yok
+				request.target_warehouse = None
+				request.target_warehouse_display = "-"
 	
 	return {"material_requests": material_requests}
 

@@ -14,13 +14,13 @@
 		<div class="web-list-item transaction-list-item">
 			<a href="/portal/material-request/{{ request.name }}" class="transaction-item-link"></a>
 			<div class="row align-items-center">
-				<div class="col-sm-4">
+				<div class="col-sm-2">
 					<span class="list-item-name font-weight-bold">{{ request.name }}</span>
 					<div class="small text-muted transaction-time">
 						{{ frappe.format_date(request.creation) if request.creation else "-" }}
 					</div>
 				</div>
-				<div class="col-sm-3">
+				<div class="col-sm-2">
 					{% if request.status == "Pending" %}
 						<span class="indicator-pill gray list-item-status">{{ _("Pending") }}</span>
 					{% elif request.status == "Partially Ordered" %}
@@ -35,16 +35,25 @@
 						<span class="indicator-pill gray list-item-status">{{ _(request.status) }}</span>
 					{% endif %}
 				</div>
-				<div class="col-sm-3">
+				<div class="col-sm-2">
 					<div class="small text-muted">
-						{{ _("Planned Date") }}:
-						{{ frappe.format_date(request.schedule_date) if request.schedule_date else "-" }}
-					</div>
-					<div class="small text-muted">
-						{{ _("Requested By") }}: {{ request.owner }}
+						<strong>{{ _("Requested By") }}:</strong><br>
+						{{ request.requested_by_name or request.owner_name or request.owner or "-" }}
 					</div>
 				</div>
-				<div class="col-sm-2 text-right">
+				<div class="col-sm-3">
+					<div class="small text-muted">
+						<strong>{{ _("Target Warehouse") }}:</strong><br>
+						{{ request.target_warehouse_display or "-" }}
+					</div>
+				</div>
+				<div class="col-sm-2">
+					<div class="small text-muted">
+						<strong>{{ _("Planned Date") }}:</strong><br>
+						{{ frappe.format_date(request.schedule_date) if request.schedule_date else "-" }}
+					</div>
+				</div>
+				<div class="col-sm-1 text-right">
 					<div class="action-buttons">
 						{% if request.material_request_type == "Purchase" and request.status in ["Draft", "Pending", "Partially Ordered"] and request.docstatus < 2 and request.status != "Ordered" %}
 							<button type="button"

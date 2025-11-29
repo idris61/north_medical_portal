@@ -356,6 +356,123 @@ def get_website_css():
 		max-width: 0 !important;
 	}}
 	
+	/* Button Text Colors - Tüm formlarda buton yazılarını okunabilir yap */
+	/* Turuncu/kırmızı-turuncu butonlar için beyaz yazı */
+	.btn-primary,
+	.btn-primary:focus,
+	.btn-primary:active,
+	.btn-primary:hover,
+	.btn-primary:not(:disabled):not(.disabled):active,
+	.btn-primary:not(:disabled):not(.disabled).active,
+	button.btn-primary,
+	a.btn-primary,
+	.btn.btn-primary {{
+		color: #ffffff !important;
+		font-weight: 600 !important;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+	}}
+	
+	/* Gradient turuncu butonlar için */
+	.btn-primary[style*="gradient"],
+	.btn-primary[style*="orange"],
+	.btn-primary[style*="#ff"],
+	.btn-primary[style*="rgb(255"],
+	.btn[style*="background: linear-gradient"][class*="btn-primary"],
+	.btn[style*="background: linear-gradient"].btn-primary {{
+		color: #ffffff !important;
+		font-weight: 700 !important;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+	}}
+	
+	/* Sarı butonlar için koyu yazı */
+	.btn-warning,
+	.btn-warning:focus,
+	.btn-warning:active,
+	.btn-warning:hover,
+	button.btn-warning,
+	a.btn-warning,
+	.btn.btn-warning {{
+		color: #212529 !important;
+		font-weight: 600 !important;
+	}}
+	
+	/* Diğer butonlar için kontrast kontrolü */
+	.btn-success {{
+		color: #ffffff !important;
+		font-weight: 600 !important;
+	}}
+	
+	.btn-danger {{
+		color: #ffffff !important;
+		font-weight: 600 !important;
+	}}
+	
+	.btn-info {{
+		color: #ffffff !important;
+		font-weight: 600 !important;
+	}}
+	
+	.btn-secondary {{
+		color: #212529 !important;
+		font-weight: 500 !important;
+	}}
+	
+	/* Yazdır butonları için özel stil - Print butonları siyah yazı */
+	a.btn-secondary[href*="printview"],
+	a.btn-secondary[href*="print"],
+	.btn-secondary .fa-print,
+	.btn-secondary i.fa-print {{
+		color: #212529 !important;
+		font-weight: 600 !important;
+	}}
+	
+	/* Print butonları hover durumu */
+	a.btn-secondary[href*="printview"]:hover,
+	a.btn-secondary[href*="print"]:hover,
+	a.btn-secondary[href*="printview"]:hover i,
+	a.btn-secondary[href*="print"]:hover i {{
+		color: #000000 !important;
+	}}
+	
+	/* Print butonları içindeki tüm metin ve ikonlar */
+	a.btn-secondary[href*="printview"] *,
+	a.btn-secondary[href*="print"] * {{
+		color: #212529 !important;
+	}}
+	
+	a.btn-secondary[href*="printview"]:hover *,
+	a.btn-secondary[href*="print"]:hover * {{
+		color: #000000 !important;
+	}}
+	
+	/* Portal sayfalarındaki özel butonlar */
+	.portal-page .btn-primary,
+	.portal-page .btn-primary:hover,
+	.portal-page .btn-primary:focus,
+	.portal-page .btn-primary:active {{
+		color: #ffffff !important;
+		font-weight: 600 !important;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+	}}
+	
+	/* Material Issue ve diğer portal sayfalarındaki butonlar */
+	#submit-btn.btn-primary,
+	#save-reorder-btn.btn-primary,
+	.add-to-cart-btn.btn-primary,
+	.edit-btn.btn-primary,
+	.amend-btn.btn-primary,
+	.cancel-btn.btn-warning {{
+		color: #ffffff !important;
+		font-weight: 600 !important;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+	}}
+	
+	.cancel-btn.btn-warning {{
+		color: #212529 !important;
+		font-weight: 600 !important;
+		text-shadow: none !important;
+	}}
+	
 	</style>
 	"""
 
@@ -458,6 +575,15 @@ def update_website_context(context):
 		if not hasattr(frappe.website.utils.get_portal_sidebar_items, '_overridden'):
 			frappe.website.utils.get_portal_sidebar_items = get_portal_sidebar_items
 			frappe.website.utils.get_portal_sidebar_items._overridden = True
+	except (ImportError, AttributeError):
+		pass
+	
+	# Override ERPNext permissions for admin - Only once
+	try:
+		from north_medical_portal.utils.override_erpnext_permissions import override_erpnext_permissions
+		if not hasattr(frappe, '_erpnext_permissions_overridden'):
+			override_erpnext_permissions()
+			frappe._erpnext_permissions_overridden = True
 	except (ImportError, AttributeError):
 		pass
 	# Login sayfası için özel işlemler

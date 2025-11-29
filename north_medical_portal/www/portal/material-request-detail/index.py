@@ -24,6 +24,15 @@ def get_context(context):
 	if hasattr(context.doc, "set_indicator"):
 		context.doc.set_indicator()
 
+	# Talebi oluşturan kullanıcı bilgisini ekle
+	if context.doc.owner:
+		context.doc.owner_name = frappe.utils.get_fullname(context.doc.owner)
+		# requested_by field'ı varsa onu kullan
+		if hasattr(context.doc, 'requested_by') and context.doc.requested_by:
+			context.doc.requested_by_name = frappe.utils.get_fullname(context.doc.requested_by)
+		else:
+			context.doc.requested_by_name = context.doc.owner_name
+
 	context.parents = [{"label": _("Material Requests"), "route": "/portal/material-requests"}]
 	context.title = context.doc.name
 	
@@ -36,6 +45,30 @@ def get_context(context):
 
 	# Material Request için özel item bilgileri
 	context.doc.items = get_more_items_info(context.doc.items, context.doc.name)
+	
+	# Hedef depo bilgisini belirle
+	if context.doc.set_warehouse:
+		context.doc.target_warehouse = context.doc.set_warehouse
+		context.doc.target_warehouse_display = context.doc.set_warehouse
+	else:
+		# Item'lardaki warehouse bilgilerini kontrol et
+		warehouses = set()
+		for item in context.doc.items:
+			if item.warehouse:
+				warehouses.add(item.warehouse)
+		
+		if len(warehouses) == 1:
+			# Tüm item'lar aynı depoda
+			context.doc.target_warehouse = list(warehouses)[0]
+			context.doc.target_warehouse_display = list(warehouses)[0]
+		elif len(warehouses) > 1:
+			# Farklı depolar var
+			context.doc.target_warehouse = None
+			context.doc.target_warehouse_display = _("Per Item")
+		else:
+			# Hiç depo yok
+			context.doc.target_warehouse = None
+			context.doc.target_warehouse_display = "-"
 	
 	# Item resimlerini ekle
 	for item in context.doc.items:

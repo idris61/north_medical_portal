@@ -31,6 +31,29 @@
 	</div>
 </div>
 
+<div class="row mt-3 mb-3">
+	<div class="col-12">
+		<table class="table table-sm table-borderless mb-0" style="font-size: 0.9rem;">
+			<tbody>
+				<tr>
+					<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Requested By") }}:</td>
+					<td>{{ doc.requested_by_name or doc.owner_name or frappe.utils.get_fullname(doc.owner) or doc.owner or "-" }}</td>
+				</tr>
+				<tr>
+					<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Target Warehouse") }}:</td>
+					<td>{{ doc.target_warehouse_display or "-" }}</td>
+				</tr>
+				{% if doc.schedule_date %}
+				<tr>
+					<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Planned Date") }}:</td>
+					<td>{{ frappe.utils.format_date(doc.schedule_date, 'medium') }}</td>
+				</tr>
+				{% endif %}
+			</tbody>
+		</table>
+	</div>
+</div>
+
 {% if doc._header %}
 {{ doc._header }}
 {% endif %}
@@ -70,6 +93,11 @@
 						{% if d.description %}
 						<div class="text-muted small item-description">
 							{{ d.description[:100] }}{% if d.description|length > 100 %}...{% endif %}
+						</div>
+						{% endif %}
+						{% if d.warehouse and not doc.set_warehouse %}
+						<div class="text-muted small mt-1">
+							<i class="fa fa-warehouse"></i> {{ _("Target Warehouse") }}: {{ d.warehouse }}
 						</div>
 						{% endif %}
 					</div>

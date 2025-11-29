@@ -107,6 +107,8 @@ def get_stock_entries(entry_type=None):
 				se.remarks,
 				se.from_warehouse,
 				se.to_warehouse,
+				se.modified_by,
+				se.owner,
 				COALESCE(w_from.warehouse_name, w_to.warehouse_name, se.from_warehouse, se.to_warehouse, '-') as warehouse_display,
 				GROUP_CONCAT(DISTINCT sed.item_name ORDER BY sed.idx SEPARATOR ', ') as items_preview
 			FROM `tabStock Entry` se
@@ -131,6 +133,8 @@ def get_stock_entries(entry_type=None):
 				se.remarks,
 				se.from_warehouse,
 				se.to_warehouse,
+				se.modified_by,
+				se.owner,
 				COALESCE(w_from.warehouse_name, w_to.warehouse_name, se.from_warehouse, se.to_warehouse, '-') as warehouse_display,
 				GROUP_CONCAT(DISTINCT sed.item_name ORDER BY sed.idx SEPARATOR ', ') as items_preview
 			FROM `tabStock Entry` se
@@ -142,6 +146,18 @@ def get_stock_entries(entry_type=None):
 			ORDER BY se.posting_date DESC, se.creation DESC
 			LIMIT 100
 		""", {"company": user_company}, as_dict=True)
+	
+	# Her entry için modified_by_name ve owner_name ekle
+	for entry in stock_entries:
+		if entry.modified_by:
+			entry.modified_by_name = frappe.utils.get_fullname(entry.modified_by)
+		else:
+			entry.modified_by_name = None
+		
+		if entry.owner:
+			entry.owner_name = frappe.utils.get_fullname(entry.owner)
+		else:
+			entry.owner_name = None
 	
 	return {"stock_entries": stock_entries}
 
@@ -334,9 +350,12 @@ def get_stock_entry_for_edit(stock_entry_name):
 	# Belgeyi al
 	stock_entry = frappe.get_doc("Stock Entry", stock_entry_name)
 	
-	# Şirket kontrolü
-	if stock_entry.company != user_company:
-		frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
+	# Admin kullanıcılar için bypass
+	from north_medical_portal.utils.helpers import is_admin_user
+	if not is_admin_user():
+		# Şirket kontrolü
+		if stock_entry.company != user_company:
+			frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
 	
 	# Sadece draft belgeler düzenlenebilir
 	if stock_entry.docstatus != 0:
@@ -379,9 +398,12 @@ def update_stock_entry(stock_entry_name, warehouse, items, posting_date=None, re
 	# Belgeyi al
 	stock_entry = frappe.get_doc("Stock Entry", stock_entry_name)
 	
-	# Şirket kontrolü
-	if stock_entry.company != user_company:
-		frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
+	# Admin kullanıcılar için bypass
+	from north_medical_portal.utils.helpers import is_admin_user
+	if not is_admin_user():
+		# Şirket kontrolü
+		if stock_entry.company != user_company:
+			frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
 	
 	# Sadece draft belgeler güncellenebilir
 	if stock_entry.docstatus != 0:
@@ -572,9 +594,12 @@ def cancel_stock_entry(stock_entry_name):
 	# Belgeyi al
 	stock_entry = frappe.get_doc("Stock Entry", stock_entry_name)
 	
-	# Şirket kontrolü
-	if stock_entry.company != user_company:
-		frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
+	# Admin kullanıcılar için bypass
+	from north_medical_portal.utils.helpers import is_admin_user
+	if not is_admin_user():
+		# Şirket kontrolü
+		if stock_entry.company != user_company:
+			frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
 	
 	# Sadece submitted belgeler iptal edilebilir
 	if stock_entry.docstatus != 1:
@@ -604,9 +629,12 @@ def delete_stock_entry(stock_entry_name):
 	# Belgeyi al
 	stock_entry = frappe.get_doc("Stock Entry", stock_entry_name)
 	
-	# Şirket kontrolü
-	if stock_entry.company != user_company:
-		frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
+	# Admin kullanıcılar için bypass
+	from north_medical_portal.utils.helpers import is_admin_user
+	if not is_admin_user():
+		# Şirket kontrolü
+		if stock_entry.company != user_company:
+			frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
 	
 	# Sadece draft veya iptal edilmiş belgeler silinebilir
 	if stock_entry.docstatus not in [0, 2]:
@@ -634,9 +662,12 @@ def amend_stock_entry(stock_entry_name):
 	# Belgeyi al
 	stock_entry = frappe.get_doc("Stock Entry", stock_entry_name)
 	
-	# Şirket kontrolü
-	if stock_entry.company != user_company:
-		frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
+	# Admin kullanıcılar için bypass
+	from north_medical_portal.utils.helpers import is_admin_user
+	if not is_admin_user():
+		# Şirket kontrolü
+		if stock_entry.company != user_company:
+			frappe.throw(_("Bu belgeye erişim yetkiniz yok"))
 	
 	# Sadece iptal edilmiş belgeler düzeltilebilir
 	if stock_entry.docstatus != 2:

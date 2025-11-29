@@ -22,8 +22,8 @@
 				<i class="fa fa-print"></i> {{ _("Print") }}
 			</a>
 		</div>
-		{# Sales Order ve Delivery Note için ödeme butonu gizlendi #}
-		{% if doc.doctype != "Sales Order" and doc.doctype != "Delivery Note" %}
+		{# Sales Order, Delivery Note, Purchase Order ve Purchase Invoice için ödeme butonu gizlendi #}
+		{% if doc.doctype != "Sales Order" and doc.doctype != "Delivery Note" and doc.doctype != "Purchase Order" and doc.doctype != "Purchase Invoice" %}
 			<div class="form-column col-sm-6">
 				<div class="page-header-actions-block" data-html-block="header-actions">
 					<p>
@@ -42,18 +42,65 @@
 
 {% block page_content %}
 	<div>
-		<div class="row transaction-subheading  mt-1">
-			<div class="col-6 text-muted small mt-1">
-				{% if doc.doctype == "Delivery Note" or doc.doctype == "Sales Invoice" %}
-					{{ frappe.utils.format_date(doc.posting_date, 'medium') }}
-				{% else %}
-					{{ frappe.utils.format_date(doc.transaction_date, 'medium') }}
-				{% endif %}
-				{% if doc.valid_till %}
-					<p>
-						{{ _("Valid Till") }}: {{ frappe.utils.format_date(doc.valid_till, 'medium') }}
-					</p>
-				{% endif %}
+		<div class="row transaction-subheading mt-1">
+			<div class="col-12">
+				<table class="table table-sm table-borderless mb-0" style="font-size: 0.9rem;">
+					<tbody>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Date") }}:</td>
+							<td>
+								{% if doc.doctype in ["Delivery Note", "Sales Invoice", "Purchase Invoice"] %}
+									{{ frappe.utils.format_date(doc.posting_date, 'medium') }}
+								{% else %}
+									{{ frappe.utils.format_date(doc.transaction_date, 'medium') }}
+								{% endif %}
+							</td>
+						</tr>
+						{% if doc.doctype in ['Purchase Order', 'Purchase Invoice'] %}
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Supplier") }}:</td>
+							<td>{{ doc.supplier_name or doc.supplier or "-" }}</td>
+						</tr>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Address") }}:</td>
+							<td>
+								{% if doc.doctype == 'Purchase Order' %}
+									{{ doc.supplier_address_display or doc.address_display or doc.shipping_address_display or "-" }}
+								{% elif doc.doctype == 'Purchase Invoice' %}
+									{{ doc.supplier_address_display or doc.address_display or doc.billing_address_display or "-" }}
+								{% endif %}
+							</td>
+						</tr>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Modified By") }}:</td>
+							<td>{{ doc.modified_by_name or "-" }}</td>
+						</tr>
+						{% elif doc.doctype in ['Sales Order', 'Sales Invoice', 'Delivery Note'] %}
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Customer") }}:</td>
+							<td>{{ doc.customer_name or doc.customer or "-" }}</td>
+						</tr>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Address") }}:</td>
+							<td>
+								{% if doc.doctype == 'Sales Order' %}
+									{{ doc.address_display or doc.shipping_address_display or "-" }}
+								{% elif doc.doctype == 'Sales Invoice' %}
+									{{ doc.address_display or doc.shipping_address_display or "-" }}
+								{% elif doc.doctype == 'Delivery Note' %}
+									{{ doc.address_display or doc.shipping_address_display or "-" }}
+								{% endif %}
+							</td>
+						</tr>
+						{% endif %}
+						{% if doc.valid_till %}
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Valid Till") }}:</td>
+							<td>{{ frappe.utils.format_date(doc.valid_till, 'medium') }}</td>
+						</tr>
+						{% endif %}
+					</tbody>
+				</table>
 			</div>
 		</div>
 		<div class="row indicator-container mt-2">
@@ -67,13 +114,15 @@
 				</span>
 			</div>
 			<div class="text-right col-2">
-				{%- set party_name = doc.supplier_name if doc.doctype in ['Supplier Quotation', 'Purchase Invoice', 'Purchase Order'] else doc.customer_name %}
-				<b>{{ party_name }}</b>
+				{%- if doc.doctype not in ['Purchase Order', 'Purchase Invoice'] %}
+					{%- set party_name = doc.supplier_name if doc.doctype in ['Supplier Quotation'] else doc.customer_name %}
+					<b>{{ party_name }}</b>
 
-				{% if doc.contact_display and doc.contact_display != party_name %}
-					<br>
-					{{ doc.contact_display }}
-				{% endif %}
+					{% if doc.contact_display and doc.contact_display != party_name %}
+						<br>
+						{{ doc.contact_display }}
+					{% endif %}
+				{%- endif %}
 			</div>
 		</div>
 
