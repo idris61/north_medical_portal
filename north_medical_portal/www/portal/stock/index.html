@@ -8,34 +8,59 @@
 	<div class="page-header d-flex justify-content-between align-items-center">
 		<h3 class="mb-4">{{ _("Stock Status") }}</h3>
 		<div class="d-flex flex-column gap-2 align-items-end">
-			<button type="button" id="trigger-reorder-check" class="btn btn-primary btn-sm" onclick="triggerReorderCheck(); return false;">
+			<button type="button" id="trigger-reorder-check" class="btn btn-primary btn-sm">
 				<i class="fa fa-refresh"></i> {{ _("Minimum Stock Control") }}
 			</button>
 		</div>
 	</div>
 
 	{% if has_stock_data %}
-	<!-- Filtreleme Bölümü -->
-	<div class="stock-filters mb-4">
-		<div class="row">
-			<div class="col-md-3 mb-2">
-				<input type="text" id="filter-item-code" class="form-control form-control-sm" placeholder="{{ _('Ürün Kodu ile ara...') }}">
-			</div>
-			<div class="col-md-3 mb-2">
-				<input type="text" id="filter-item-name" class="form-control form-control-sm" placeholder="{{ _('Ürün Adı ile ara...') }}">
-			</div>
-			<div class="col-md-3 mb-2">
-				<select id="filter-warehouse" class="form-control form-control-sm">
-					<option value="">{{ _("Tüm Depolar") }}</option>
-					{% for wh in warehouses %}
-					<option value="{{ wh.name }}">{{ wh.warehouse_name or wh.name }}</option>
-					{% endfor %}
-				</select>
-			</div>
-			<div class="col-md-3 mb-2">
-				<button type="button" id="clear-filters" class="btn btn-sm btn-secondary btn-block">
-					{{ _("Temizle") }}
-				</button>
+	<!-- Profesyonel Filtre Çubuğu -->
+	<div class="product-filter-bar mb-4" id="stock-filter-bar-main" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+		<div class="filter-bar-container">
+			<div class="filter-row">
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-barcode"></i> {{ _("Ürün Kodu") }}
+					</label>
+					<input type="text" id="filter-item-code" class="filter-input" 
+						placeholder="{{ _('Ürün kodu ile ara...') }}">
+				</div>
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-tag"></i> {{ _("Ürün Adı") }}
+					</label>
+					<input type="text" id="filter-item-name" class="filter-input" 
+						placeholder="{{ _('Ürün adı ile ara...') }}">
+				</div>
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-warehouse"></i> {{ _("Depo") }}
+					</label>
+					<select id="filter-warehouse" class="filter-input">
+						<option value="">{{ _("Tüm Depolar") }}</option>
+						{% for wh in warehouses %}
+						<option value="{{ wh.name }}">{{ wh.warehouse_name or wh.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-cubes"></i> {{ _("Stok Miktarı") }}
+					</label>
+					<div class="filter-quantity-range">
+						<input type="number" id="filter-stock-min" class="filter-input filter-input-small" 
+							placeholder="{{ _('Min') }}" step="1" min="0">
+						<span class="filter-separator">-</span>
+						<input type="number" id="filter-stock-max" class="filter-input filter-input-small" 
+							placeholder="{{ _('Max') }}" step="1" min="0">
+					</div>
+				</div>
+				<div class="filter-actions">
+					<button type="button" id="clear-filters" class="btn-filter-clear">
+						<i class="fa fa-times"></i> {{ _("Temizle") }}
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -134,11 +159,174 @@
 </div>
 
 <style>
-.stock-filters {
-	background: #f8f9fa;
-	padding: 15px;
-	border-radius: 6px;
-	border: 1px solid #dee2e6;
+/* Profesyonel Filtre Çubuğu Stilleri */
+.product-filter-bar {
+	background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 1.25rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	margin-bottom: 1rem !important;
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-bar-container {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	margin: -0.5rem;
+	box-sizing: border-box;
+	gap: 0.75rem;
+}
+
+.filter-row > * {
+	margin: 0.5rem;
+}
+
+.filter-group {
+	flex: 1;
+	min-width: 180px;
+	display: flex;
+	flex-direction: column;
+	margin: 0.5rem;
+	box-sizing: border-box;
+	justify-content: flex-end;
+}
+
+.filter-group > *:not(:last-child) {
+	margin-bottom: 0.5rem;
+}
+
+.filter-quantity-range {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: 0.5rem;
+}
+
+.filter-label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #495057;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.filter-label i {
+	color: #0099cc;
+	margin-right: 0.25rem;
+}
+
+.filter-input {
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid #ced4da;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+	background-color: #fff;
+}
+
+.filter-input:focus {
+	outline: none;
+	border-color: #0099cc;
+	box-shadow: 0 0 0 0.2rem rgba(0, 153, 204, 0.15);
+}
+
+.filter-input-small {
+	flex: 1;
+	min-width: 80px;
+	max-width: 120px;
+}
+
+.filter-separator {
+	color: #6c757d;
+	font-weight: 500;
+	flex-shrink: 0;
+	margin: 0;
+	padding: 0 0.25rem;
+}
+
+.filter-actions {
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.btn-filter-clear {
+	padding: 0.5rem 1rem;
+	background-color: #6c757d;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+	height: fit-content;
+}
+
+.btn-filter-clear:hover {
+	background-color: #5a6268;
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-filter-clear i {
+	margin-right: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.filter-row {
+		flex-direction: column;
+		gap: 0;
+	}
+	
+	.filter-row > * {
+		margin: 0.5rem 0;
+	}
+	
+	.filter-group {
+		min-width: 100%;
+		width: 100%;
+	}
+	
+	.filter-quantity-range {
+		width: 100%;
+	}
+	
+	.filter-input-small {
+		max-width: 100%;
+		width: calc(50% - 0.5rem);
+	}
+	
+	.filter-actions {
+		width: 100%;
+		margin-left: 0;
+		justify-content: stretch;
+	}
+	
+	.btn-filter-clear {
+		width: 100%;
+	}
 }
 
 .website-list {
@@ -296,30 +484,71 @@ window.triggerReorderCheck = function() {
 };
 
 frappe.ready(function() {
-	if (!$('.stock-item-row').length) return;
+	// Filtre çubuğunu kontrol et ve görünür yap
+	const $filterBar = $('.product-filter-bar');
+	if ($filterBar.length > 0) {
+		$filterBar.css({
+			'display': 'block',
+			'visibility': 'visible',
+			'opacity': '1',
+			'width': '100%'
+		});
+	}
 	
+	// Stok satırları yoksa filtreleme yapma
+	if (!$('.stock-item-row').length) {
+		return;
+	}
+	
+	// Hızlı filtre fonksiyonu - optimize edilmiş ve anında çalışan
 	function filterTable() {
-		const itemCodeFilter = $('#filter-item-code').val().toLowerCase();
-		const itemNameFilter = $('#filter-item-name').val().toLowerCase();
+		const itemCodeFilter = $('#filter-item-code').val().toLowerCase().trim();
+		const itemNameFilter = $('#filter-item-name').val().toLowerCase().trim();
 		const warehouseFilter = $('#filter-warehouse').val();
+		const stockMinVal = $('#filter-stock-min').val().trim();
+		const stockMaxVal = $('#filter-stock-max').val().trim();
+		const stockMin = stockMinVal ? parseFloat(stockMinVal) : null;
+		const stockMax = stockMaxVal ? parseFloat(stockMaxVal) : null;
+		
+		// Filtreler boşsa tümünü göster
+		if (!itemCodeFilter && !itemNameFilter && !warehouseFilter && stockMin === null && stockMax === null) {
+			$('.stock-item-row').removeClass('filtered-out').show();
+			$('#no-results').hide();
+			$('.website-list').show();
+			return;
+		}
 		
 		let visibleCount = 0;
 		
-		$('.stock-item-row').each(function() {
-			const $row = $(this);
-			const itemCode = $row.data('item-code').toLowerCase();
-			const itemName = $row.data('item-name').toLowerCase();
-			const warehouse = $row.data('warehouse');
+		// Performans için batch update
+		const $rows = $('.stock-item-row');
+		const rowsArray = $rows.toArray();
+		
+		// Önce tüm değerleri cache'le - sadece bir kez oku
+		const rowData = rowsArray.map(row => {
+			const $row = $(row);
+			const stockQtyText = $row.find('.stock-qty').text().trim();
+			return {
+				$row: $row,
+				itemCode: ($row.data('item-code') || '').toLowerCase(),
+				itemName: ($row.data('item-name') || '').toLowerCase(),
+				warehouse: $row.data('warehouse') || '',
+				stockQty: parseFloat(stockQtyText.replace(/[^\d.-]/g, '')) || 0
+			};
+		});
+		
+		// Batch işlem - tek seferde tüm satırları kontrol et ve güncelle
+		rowData.forEach(data => {
+			const matchItemCode = !itemCodeFilter || data.itemCode.includes(itemCodeFilter);
+			const matchItemName = !itemNameFilter || data.itemName.includes(itemNameFilter);
+			const matchWarehouse = !warehouseFilter || data.warehouse === warehouseFilter;
+			const matchStock = (stockMin === null || data.stockQty >= stockMin) && (stockMax === null || data.stockQty <= stockMax);
 			
-			const matchItemCode = !itemCodeFilter || itemCode.includes(itemCodeFilter);
-			const matchItemName = !itemNameFilter || itemName.includes(itemNameFilter);
-			const matchWarehouse = !warehouseFilter || warehouse === warehouseFilter;
-			
-			if (matchItemCode && matchItemName && matchWarehouse) {
-				$row.show();
+			if (matchItemCode && matchItemName && matchWarehouse && matchStock) {
+				data.$row.removeClass('filtered-out').show();
 				visibleCount++;
 			} else {
-				$row.hide();
+				data.$row.addClass('filtered-out').hide();
 			}
 		});
 		
@@ -333,22 +562,51 @@ frappe.ready(function() {
 		}
 	}
 	
-	// Filtre event handler'ları
-	$('#filter-item-code, #filter-item-name').on('keyup', filterTable);
-	$('#filter-warehouse').on('change', filterTable);
+	// Event handler'ları temizle ve yeniden tanımla (duplicate önlemek için)
+	$('#filter-item-code, #filter-item-name, #filter-warehouse, #filter-stock-min, #filter-stock-max').off('input change');
+	$('#clear-filters').off('click');
 	
-	// Temizle butonu
-	$('#clear-filters').on('click', function() {
-		$('#filter-item-code, #filter-item-name').val('');
-		$('#filter-warehouse').val('');
+	// Ürün kodu - anında filtreleme (her karakter yazıldığında)
+	$('#filter-item-code').on('input', function() {
 		filterTable();
 	});
 	
-	// İlk yüklemede filtreleme yap
+	// Ürün adı - anında filtreleme (her karakter yazıldığında)
+	$('#filter-item-name').on('input', function() {
+		filterTable();
+	});
+	
+	// Depo select - anında filtreleme
+	$('#filter-warehouse').on('change', function() {
+		filterTable();
+	});
+	
+	// Stok miktarı - anında filtreleme (her değişiklikte)
+	$('#filter-stock-min, #filter-stock-max').on('input', function() {
+		filterTable();
+	});
+	
+	// Temizle butonu - tüm filtreleri temizle ve anında filtrele
+	$('#clear-filters').on('click', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		// Tüm filtreleri temizle
+		$('#filter-item-code').val('');
+		$('#filter-item-name').val('');
+		$('#filter-warehouse').val('');
+		$('#filter-stock-min').val('');
+		$('#filter-stock-max').val('');
+		
+		// Anında filtrele (tümünü göster)
+		filterTable();
+	});
+	
+	// İlk yüklemede filtreleme yap (eğer varsayılan filtreler varsa)
 	filterTable();
 	
 	// Reorder level düzenleme modal - direkt buton tıklama
-	$('.edit-reorder-btn').on('click', function(e) {
+	$('.edit-reorder-btn').off('click').on('click', function(e) {
 		e.preventDefault();
 		e.stopPropagation();
 		
@@ -410,8 +668,8 @@ frappe.ready(function() {
 		$('body').append(modal);
 		$('#editReorderModal').modal('show');
 		
-		// Kaydet butonu
-		$('#save-reorder-btn').on('click', function() {
+		// Kaydet butonu - önceki handler'ları temizle (duplicate önlemek için)
+		$('#save-reorder-btn').off('click').on('click', function() {
 			const reorderLevel = $('#modal-reorder-level').val() ? parseInt($('#modal-reorder-level').val()) : null;
 			const reorderQty = $('#modal-reorder-qty').val() ? parseInt($('#modal-reorder-qty').val()) : null;
 			
@@ -461,19 +719,20 @@ frappe.ready(function() {
 			});
 		});
 		
-		// Modal kapandığında temizle
-		$('#editReorderModal').on('hidden.bs.modal', function() {
+		// Modal kapandığında temizle - önceki handler'ları temizle (duplicate önlemek için)
+		$('#editReorderModal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
 			$(this).remove();
 		});
-		
-		// Ayrıca jQuery event handler da ekle (fallback)
-		$(document).on('click', '#trigger-reorder-check', function(e) {
-			e.preventDefault();
-			e.stopPropagation();
-			if (typeof triggerReorderCheck === 'function') {
-				triggerReorderCheck();
-			}
-		});
+	});
+	
+	// trigger-reorder-check butonu için event handler - frappe.ready içinde
+	// Önceki handler'ları temizle (duplicate önlemek için)
+	$(document).off('click', '#trigger-reorder-check').on('click', '#trigger-reorder-check', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		if (typeof triggerReorderCheck === 'function') {
+			triggerReorderCheck();
+		}
 	});
 });
 </script>

@@ -55,6 +55,62 @@
 				<div class="d-flex justify-content-between align-items-center mb-3">
 					<h5 class="mb-0">{{ _("Items") }}</h5>
 				</div>
+				
+				<!-- Profesyonel Filtre Çubuğu -->
+				<div class="product-filter-bar mb-3" id="material-issue-filter-bar-main" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+					<div class="filter-bar-container">
+						<div class="filter-row">
+							<div class="filter-group">
+								<label class="filter-label">
+									<i class="fa fa-cube"></i> {{ _("Item") }}
+								</label>
+								<input type="text" id="filter-item" class="filter-input" 
+									placeholder="{{ _('Item code or name...') }}">
+							</div>
+							<div class="filter-group">
+								<label class="filter-label">
+									<i class="fa fa-hashtag"></i> {{ _("Quantity") }}
+								</label>
+								<div class="filter-quantity-range">
+									<input type="number" id="filter-quantity-min" class="filter-input filter-input-small" 
+										placeholder="{{ _('Min') }}" step="1" min="0">
+									<span class="filter-separator">-</span>
+									<input type="number" id="filter-quantity-max" class="filter-input filter-input-small" 
+										placeholder="{{ _('Max') }}" step="1" min="0">
+								</div>
+							</div>
+							<div class="filter-group">
+								<label class="filter-label">
+									<i class="fa fa-warehouse"></i> {{ _("Available Stock") }}
+								</label>
+								<div class="filter-quantity-range">
+									<input type="number" id="filter-stock-min" class="filter-input filter-input-small" 
+										placeholder="{{ _('Min') }}" step="1" min="0">
+									<span class="filter-separator">-</span>
+									<input type="number" id="filter-stock-max" class="filter-input filter-input-small" 
+										placeholder="{{ _('Max') }}" step="1" min="0">
+								</div>
+							</div>
+							<div class="filter-group">
+								<label class="filter-label">
+									<i class="fa fa-ruler"></i> {{ _("UOM") }}
+								</label>
+								<input type="text" id="filter-uom" class="filter-input" 
+									placeholder="{{ _('UOM...') }}">
+							</div>
+							<div class="filter-actions">
+								<button type="button" id="clear-item-filters" class="btn-filter-clear">
+									<i class="fa fa-times"></i> {{ _("Clear") }}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<div id="no-items-filtered" class="alert alert-info text-center" style="display: none;">
+					<i class="fa fa-info-circle"></i> {{ _("No items match the filter criteria") }}
+				</div>
+				
 				<div class="table-responsive" style="position: relative;">
 					<table class="table table-bordered table-hover" id="items-table">
 						<thead>
@@ -257,6 +313,180 @@
 	margin-top: 0.25rem;
 	display: block;
 	color: #6c757d;
+}
+
+/* Profesyonel Filtre Çubuğu Stilleri */
+.product-filter-bar {
+	background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 1.25rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	margin-bottom: 1rem !important;
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-bar-container {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	margin: -0.5rem;
+	box-sizing: border-box;
+	gap: 0.75rem;
+}
+
+.filter-row > * {
+	margin: 0.5rem;
+}
+
+.filter-group {
+	flex: 1;
+	min-width: 180px;
+	display: flex;
+	flex-direction: column;
+	margin: 0.5rem;
+	box-sizing: border-box;
+	justify-content: flex-end;
+}
+
+.filter-group > *:not(:last-child) {
+	margin-bottom: 0.5rem;
+}
+
+.filter-quantity-range {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: 0.5rem;
+}
+
+.filter-label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #495057;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.filter-label i {
+	color: #0099cc;
+	margin-right: 0.25rem;
+}
+
+.filter-input {
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid #ced4da;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+	background-color: #fff;
+}
+
+.filter-input:focus {
+	outline: none;
+	border-color: #0099cc;
+	box-shadow: 0 0 0 0.2rem rgba(0, 153, 204, 0.15);
+}
+
+.filter-input-small {
+	flex: 1;
+	min-width: 80px;
+	max-width: 120px;
+}
+
+.filter-separator {
+	color: #6c757d;
+	font-weight: 500;
+	flex-shrink: 0;
+	margin: 0;
+	padding: 0 0.25rem;
+}
+
+.filter-actions {
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.btn-filter-clear {
+	padding: 0.5rem 1rem;
+	background-color: #6c757d;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+	height: fit-content;
+}
+
+.btn-filter-clear:hover {
+	background-color: #5a6268;
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-filter-clear i {
+	margin-right: 0.25rem;
+}
+
+#items-table tbody tr.filtered-out {
+	display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.filter-row {
+		flex-direction: column;
+		gap: 0;
+	}
+	
+	.filter-row > * {
+		margin: 0.5rem 0;
+	}
+	
+	.filter-group {
+		min-width: 100%;
+		width: 100%;
+	}
+	
+	.filter-quantity-range {
+		width: 100%;
+	}
+	
+	.filter-input-small {
+		max-width: 100%;
+		width: calc(50% - 0.5rem);
+	}
+	
+	.filter-actions {
+		width: 100%;
+		margin-left: 0;
+		justify-content: stretch;
+	}
+	
+	.btn-filter-clear {
+		width: 100%;
+	}
 }
 
 .available-qty {
@@ -983,12 +1213,19 @@ frappe.ready(function() {
 					
 					// Validate quantity if already entered
 					validateQty($row);
+					
+					// Filtreyi yeniden uygula
+					setTimeout(function() {
+						filterItemsTable();
+					}, 100);
 				} else {
 					clearItemRow($row);
+					filterItemsTable();
 				}
 			},
 			error: function(r) {
 				clearItemRow($row);
+				filterItemsTable();
 				if (r.message && r.message.exc) {
 					showError(r.message.exc);
 				}
@@ -1018,6 +1255,10 @@ frappe.ready(function() {
 	// Quantity input handler
 	$(document).on('input', '.item-qty', function() {
 		validateQty($(this).closest('.item-row'));
+		// Filtreyi yeniden uygula (quantity değiştiği için)
+		setTimeout(function() {
+			filterItemsTable();
+		}, 100);
 	});
 
 	// Add item row
@@ -1027,6 +1268,7 @@ frappe.ready(function() {
 		addItemRow();
 		updateRowNumbers();
 		updateDeleteButton();
+		filterItemsTable();
 		
 		// Focus on new item code input
 		setTimeout(function() {
@@ -1054,6 +1296,7 @@ frappe.ready(function() {
 			$(this).remove();
 			updateRowNumbers();
 			updateDeleteButton();
+			filterItemsTable();
 			$('#select-all-items').prop('checked', false);
 		});
 	});
@@ -1090,7 +1333,141 @@ frappe.ready(function() {
 			$(this).find('.row-number').text(index + 1);
 			$(this).find('.item-checkbox').attr('data-row-index', index);
 		});
+		// Filtrelemeyi yeniden uygula
+		filterItemsTable();
 	}
+
+	// Filtre çubuğunu kontrol et ve görünür yap
+	const $filterBarMI = $('.product-filter-bar');
+	if ($filterBarMI.length > 0) {
+		$filterBarMI.css({
+			'display': 'block',
+			'visibility': 'visible',
+			'opacity': '1',
+			'width': '100%'
+		});
+	}
+
+	// Optimized debounce - daha hızlı filtreleme için
+	function debounce(func, wait) {
+		let timeout;
+		return function executedFunction(...args) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
+
+	// Hızlı filtre fonksiyonu - optimize edilmiş
+	function filterItemsTable() {
+		const itemFilter = $('#filter-item').val().toLowerCase().trim();
+		const quantityMin = parseFloat($('#filter-quantity-min').val()) || null;
+		const quantityMax = parseFloat($('#filter-quantity-max').val()) || null;
+		const stockMin = parseFloat($('#filter-stock-min').val()) || null;
+		const stockMax = parseFloat($('#filter-stock-max').val()) || null;
+		const uomFilter = $('#filter-uom').val().toLowerCase().trim();
+		
+		// Filtreler boşsa tümünü göster
+		if (!itemFilter && !uomFilter && quantityMin === null && quantityMax === null && stockMin === null && stockMax === null) {
+			$('#items-table tbody tr.item-row').removeClass('filtered-out').show();
+			$('#no-items-filtered').hide();
+			updateRowNumbers();
+			return;
+		}
+		
+		let visibleCount = 0;
+		
+		// Performans için batch update
+		const $rows = $('#items-table tbody tr.item-row');
+		const rowsArray = $rows.toArray();
+		
+		// Önce tüm değerleri cache'le
+		const rowData = rowsArray.map(row => {
+			const $row = $(row);
+			return {
+				$row: $row,
+				itemCode: ($row.find('.item-code').data('item-code') || $row.find('.item-code').val() || '').toLowerCase(),
+				itemName: ($row.find('.item-name').text() || '').toLowerCase(),
+				quantity: parseFloat($row.find('.item-qty').val()) || 0,
+				availableStock: parseFloat($row.find('.available-qty').text().replace(/[^\d.-]/g, '')) || 0,
+				uom: ($row.find('.item-uom').text() || '').toLowerCase()
+			};
+		});
+		
+		// Batch işlem - tek seferde tüm satırları kontrol et
+		rowData.forEach(data => {
+			const matchItem = !itemFilter || 
+				data.itemCode.includes(itemFilter) || 
+				data.itemName.includes(itemFilter);
+			
+			const matchQuantity = (!quantityMin || data.quantity >= quantityMin) && 
+				(!quantityMax || data.quantity <= quantityMax);
+			
+			const matchStock = (!stockMin || data.availableStock >= stockMin) && 
+				(!stockMax || data.availableStock <= stockMax);
+			
+			const matchUom = !uomFilter || data.uom.includes(uomFilter);
+			
+			if (matchItem && matchQuantity && matchStock && matchUom) {
+				data.$row.removeClass('filtered-out').show();
+				visibleCount++;
+			} else {
+				data.$row.addClass('filtered-out').hide();
+			}
+		});
+		
+		// Sonuç mesajı
+		if (visibleCount === 0 && rowsArray.length > 0) {
+			$('#no-items-filtered').show();
+		} else {
+			$('#no-items-filtered').hide();
+		}
+		
+		// Row numbers'ı güncelle (görünen satırlar için)
+		updateRowNumbers();
+	}
+
+	// Debounced filtre fonksiyonu (100ms gecikme)
+	const debouncedFilterItemsTable = debounce(filterItemsTable, 100);
+
+	// Event handler'ları tek seferde tanımla (duplicate önlemek için)
+	$('#filter-item, #filter-uom, #filter-quantity-min, #filter-quantity-max, #filter-stock-min, #filter-stock-max, #clear-item-filters').off();
+	
+	// Ürün - ilk karakter anında, sonrası debounce
+	$('#filter-item').on('input', function() {
+		if ($(this).val().length === 1) {
+			filterItemsTable();
+		} else {
+			debouncedFilterItemsTable();
+		}
+	});
+	
+	// Birim - debounce ile
+	$('#filter-uom').on('input', debouncedFilterItemsTable);
+	
+	// Miktar ve stok - debounce ile
+	$('#filter-quantity-min, #filter-quantity-max, #filter-stock-min, #filter-stock-max').on('input', debouncedFilterItemsTable);
+	
+	// Temizle butonu - event propagation'ı durdur ve filtrele
+	$(document).off('click', '#clear-item-filters').on('click', '#clear-item-filters', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		// Tüm filtreleri temizle
+		$('#filter-item').val('');
+		$('#filter-quantity-min').val('');
+		$('#filter-quantity-max').val('');
+		$('#filter-stock-min').val('');
+		$('#filter-stock-max').val('');
+		$('#filter-uom').val('');
+		
+		// Anında filtrele
+		filterItemsTable();
+	});
+	
 
 	// Form submit
 	$form.on('submit', function(e) {
@@ -1231,6 +1608,11 @@ frappe.ready(function() {
 		
 		// Initialize delete button state
 		updateDeleteButton();
+		
+		// İlk yüklemede filtreleme yap
+		setTimeout(function() {
+			filterItemsTable();
+		}, 300);
 	}, 500);
 });
 </script>
