@@ -818,8 +818,9 @@ bench get-config redis_queue
 
 ## 📞 İletişim
 
-- **Email**: info@north-medical-germany.com
+- **Email**: idris.gemici61@gmail.com
 - **GitHub**: 
+  - [idris61](https://github.com/idris61)
   - [Webshop](https://github.com/idris61/webshop)
   - [North Medical Portal](https://github.com/idris61/north_medical_portal)
 
