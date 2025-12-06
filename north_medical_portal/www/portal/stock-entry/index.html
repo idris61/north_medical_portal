@@ -1,0 +1,568 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ doc.name }}{% endblock %}
+
+{% block header %}
+	<h3 class="m-0">{{ doc.name }}</h3>
+{% endblock %}
+
+{% block header_actions %}
+	<div class="row">
+		<div class="col-auto">
+			<a class="btn btn-sm btn-secondary"
+				href='/printview?doctype={{ doc.doctype}}&name={{ doc.name }}&format={{ print_format }}' target="_blank"
+				rel="noopener noreferrer">
+				<i class="fa fa-print"></i> {{ _("Print") }}
+			</a>
+		</div>
+	</div>
+{% endblock %}
+
+{% block page_content %}
+	<div>
+		<div class="row transaction-subheading mt-1">
+			<div class="col-6 text-muted small mt-1">
+				{{ doc.posting_date_formatted or "-" }}
+			</div>
+		</div>
+		<div class="row indicator-container mt-2">
+			<div class="col-10">
+				{% if doc.docstatus == 0 %}
+					<span class="indicator-pill darkgrey">{{ _("Draft") }}</span>
+				{% elif doc.docstatus == 1 %}
+					<span class="indicator-pill blue">
+						<span class="indicator-dot"></span> {{ _("Submitted") }}
+					</span>
+				{% elif doc.docstatus == 2 %}
+					<span class="indicator-pill red">{{ _("Cancelled") }}</span>
+				{% endif %}
+			</div>
+		</div>
+
+		<div class="row mt-3 mb-3">
+			<div class="col-12">
+				<table class="table table-sm table-borderless mb-0" style="font-size: 0.9rem;">
+					<tbody>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Issued By") }}:</td>
+							<td>{{ doc.modified_by_name or doc.owner_name or doc.modified_by or doc.owner or "-" }}</td>
+						</tr>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Warehouse") }}:</td>
+							<td>{{ doc.from_warehouse or doc.to_warehouse or "-" }}</td>
+						</tr>
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Date") }}:</td>
+							<td>{{ doc.posting_date_formatted or "-" }}</td>
+						</tr>
+						{% if doc.stock_entry_type or doc.purpose %}
+						<tr>
+							<td class="text-muted" style="width: 150px; font-weight: 600;">{{ _("Type") }}:</td>
+							<td>{{ doc.stock_entry_type or doc.purpose or "-" }}</td>
+						</tr>
+						{% endif %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		{% if doc.remarks %}
+		<div class="row mt-2 mb-3">
+			<div class="col-sm-12">
+				<strong>Notlar:</strong> {{ doc.remarks or "" }}
+			</div>
+		</div>
+		{% endif %}
+
+		<div class="order-container mt-4">
+			{% if doc.items and doc.items|length > 0 %}
+			<!-- Filtre Çubuğu - Ürün Listesi Filtreleri -->
+			<div class="product-filter-bar mb-3" id="product-filter-bar-main" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+				<div class="filter-bar-container">
+					<div class="filter-row">
+						<div class="filter-group">
+							<label class="filter-label">
+								<i class="fa fa-filter"></i> {{ _("Ürün") }}
+							</label>
+							<input type="text" id="filter-item-code" class="filter-input" 
+								placeholder="{{ _('Ürün kodu veya adı ile ara...') }}">
+						</div>
+						<div class="filter-group">
+							<label class="filter-label">
+								<i class="fa fa-hashtag"></i> {{ _("Miktar") }}
+							</label>
+							<div class="filter-quantity-range">
+								<input type="number" id="filter-quantity-min" class="filter-input filter-input-small" 
+									placeholder="{{ _('Min') }}" step="1" min="0">
+								<span class="filter-separator">-</span>
+								<input type="number" id="filter-quantity-max" class="filter-input filter-input-small" 
+									placeholder="{{ _('Max') }}" step="1" min="0">
+							</div>
+						</div>
+						<div class="filter-group">
+							<label class="filter-label">
+								<i class="fa fa-cube"></i> {{ _("Birim") }}
+							</label>
+							<input type="text" id="filter-uom" class="filter-input" 
+								placeholder="{{ _('Birim ile ara...') }}">
+						</div>
+						<div class="filter-group">
+							<label class="filter-label">
+								<i class="fa fa-warehouse"></i> {{ _("Depo") }}
+							</label>
+							<input type="text" id="filter-warehouse" class="filter-input" 
+								placeholder="{{ _('Depo ile ara...') }}">
+						</div>
+						<div class="filter-actions">
+							<button type="button" id="clear-filters" class="btn-filter-clear">
+								<i class="fa fa-times"></i> {{ _("Temizle") }}
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- items -->
+			<div class="w-100">
+				<div class="order-items order-item-header mb-1 row text-muted">
+					<span class="col-5">
+						{{ _("Ürün") }}
+					</span>
+					<span class="col-2">
+						{{ _("Miktar") }}
+					</span>
+					<span class="col-2">
+						{{ _("Birim") }}
+					</span>
+					<span class="col-3 text-right">
+						{{ _("Depo") }}
+					</span>
+				</div>
+				{% for item in doc.items %}
+				<div class="order-items row align-items-center py-2 product-item-row"
+					data-item-code="{{ item.item_code }}"
+					data-item-name="{{ item.item_name or '' }}"
+					data-quantity="{{ item.qty or 0 }}"
+					data-uom="{{ item.uom or item.stock_uom or '' }}"
+					data-warehouse="{{ item.s_warehouse or item.t_warehouse or '' }}">
+					<span class="order-item-name col-5 pr-0">
+						<div class="d-flex align-items-center">
+							<div class="order-image-col mr-3 flex-shrink-0">
+								<div class="order-image">
+									{% if item.thumbnail and item.image_url %}
+										<img src="{{ item.image_url }}" alt="{{ item.item_name or item.item_code }}" class="h-100 w-100" style="object-fit: cover;">
+									{% else %}
+										<div class="no-image-cart-item">
+											{{ item.abbr or "NA" }}
+										</div>
+									{% endif %}
+								</div>
+							</div>
+							<div class="flex-grow-1">
+								<strong class="d-block">{{ item.item_code }}</strong>
+								{% if item.item_name and item.item_name != item.item_code %}
+									<div class="text-muted small">{{ item.item_name }}</div>
+								{% endif %}
+							</div>
+						</div>
+					</span>
+					<span class="col-2 pl-10 product-quantity">
+						{{ item.qty_formatted or item.qty or 0 }}
+					</span>
+					<span class="col-2 product-uom">
+						{{ item.uom or item.stock_uom }}
+					</span>
+					<span class="col-3 text-right product-warehouse">
+						{{ item.s_warehouse or item.t_warehouse or "-" }}
+					</span>
+				</div>
+				{% endfor %}
+				<div id="no-products-found" class="alert alert-info text-center mt-3" style="display: none;">
+					<i class="fa fa-info-circle"></i> {{ _("Filtre kriterlerinize uygun ürün bulunamadı") }}
+				</div>
+			</div>
+			{% else %}
+			<div class="order-items row align-items-center py-2">
+				<div class="col-12 text-center text-muted">
+					{{ _("No items found") }}
+				</div>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+
+	{% if attachments %}
+		<div class="order-item-table mt-4">
+			<div class="row order-items order-item-header text-muted">
+				<div class="col-sm-12 h6 text-uppercase">
+					{{ _("Ekler") }}
+				</div>
+			</div>
+			<div class="row order-items">
+				<div class="col-sm-12">
+					{% for attachment in attachments %}
+					<p class="small">
+						<a href="{{ attachment.file_url }}" target="blank"> {{ attachment.file_name }} </a>
+					</p>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+	{% endif %}
+
+<style>
+.order-image-col {
+	width: 80px;
+	flex-shrink: 0;
+}
+
+.order-image {
+	width: 80px;
+	height: 80px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	border-radius: 4px;
+	background-color: #f5f5f5;
+}
+
+.order-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.no-image-cart-item {
+	width: 80px;
+	height: 80px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 24px;
+	font-weight: bold;
+	color: #999;
+	background-color: #f5f5f5;
+	border-radius: 4px;
+}
+
+.order-items {
+	border-bottom: 1px solid #e0e0e0;
+}
+
+.order-items:last-child {
+	border-bottom: none;
+}
+
+.indicator-pill.blue .indicator-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	background-color: #007bff;
+	border-radius: 50%;
+	margin-right: 0.5rem;
+	vertical-align: middle;
+}
+
+/* Filtre Çubuğu Stilleri */
+.product-filter-bar {
+	background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 1.25rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	margin-bottom: 1rem !important;
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-bar-container {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	margin: -0.5rem;
+	box-sizing: border-box;
+	gap: 0.75rem;
+}
+
+.filter-row > * {
+	margin: 0.5rem;
+}
+
+.filter-group {
+	flex: 1;
+	min-width: 180px;
+	display: flex;
+	flex-direction: column;
+	margin: 0.5rem;
+	box-sizing: border-box;
+	justify-content: flex-end;
+}
+
+.filter-group > *:not(:last-child) {
+	margin-bottom: 0.5rem;
+}
+
+.filter-quantity-range {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: 0.5rem;
+}
+
+.filter-label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #495057;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.filter-label i {
+	color: #0099cc;
+	margin-right: 0.25rem;
+}
+
+.filter-input {
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid #ced4da;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+	background-color: #fff;
+}
+
+.filter-input:focus {
+	outline: none;
+	border-color: #0099cc;
+	box-shadow: 0 0 0 0.2rem rgba(0, 153, 204, 0.15);
+}
+
+.filter-input-small {
+	flex: 1;
+	min-width: 80px;
+	max-width: 120px;
+}
+
+.filter-separator {
+	color: #6c757d;
+	font-weight: 500;
+	flex-shrink: 0;
+	margin: 0;
+	padding: 0 0.25rem;
+}
+
+.filter-actions {
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.btn-filter-clear {
+	padding: 0.5rem 1rem;
+	background-color: #6c757d;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+}
+
+.btn-filter-clear:hover {
+	background-color: #5a6268;
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-filter-clear i {
+	margin-right: 0.25rem;
+}
+
+.product-item-row {
+	transition: opacity 0.2s ease;
+}
+
+.product-item-row.filtered-out {
+	display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.filter-row {
+		flex-direction: column;
+	}
+	
+	.filter-group {
+		min-width: 100%;
+	}
+	
+	.filter-input-small {
+		max-width: 100%;
+		width: calc(50% - 0.5rem);
+	}
+	
+	.filter-actions {
+		width: 100%;
+	}
+	
+	.btn-filter-clear {
+		width: 100%;
+	}
+}
+</style>
+
+<script>
+frappe.ready(function() {
+	// Filtre çubuğunu kontrol et ve görünür yap
+	const $filterBar = $('.product-filter-bar');
+	if ($filterBar.length > 0) {
+		$filterBar.css({
+			'display': 'block',
+			'visibility': 'visible',
+			'opacity': '1',
+			'width': '100%'
+		});
+	}
+	
+	// Ürün satırları yoksa filtreleme yapma
+	if (!$('.product-item-row').length) {
+		return;
+	}
+	
+	// Optimized debounce - daha hızlı filtreleme için
+	function debounce(func, wait) {
+		let timeout;
+		return function executedFunction(...args) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
+	
+	// Hızlı filtre fonksiyonu - optimize edilmiş
+	function filterProducts() {
+		const itemFilter = $('#filter-item-code').val().toLowerCase().trim();
+		const quantityMin = parseFloat($('#filter-quantity-min').val()) || null;
+		const quantityMax = parseFloat($('#filter-quantity-max').val()) || null;
+		const uomFilter = $('#filter-uom').val().toLowerCase().trim();
+		const warehouseFilter = $('#filter-warehouse').val().toLowerCase().trim();
+		
+		// Filtreler boşsa tümünü göster
+		if (!itemFilter && !uomFilter && !warehouseFilter && quantityMin === null && quantityMax === null) {
+			$('.product-item-row').removeClass('filtered-out').show();
+			$('#no-products-found').hide();
+			return;
+		}
+		
+		let visibleCount = 0;
+		
+		// Performans için batch update
+		const $rows = $('.product-item-row');
+		const rowsArray = $rows.toArray();
+		
+		// Önce tüm değerleri cache'le
+		const rowData = rowsArray.map(row => {
+			const $row = $(row);
+			return {
+				$row: $row,
+				itemCode: ($row.data('item-code') || '').toLowerCase(),
+				itemName: ($row.data('item-name') || '').toLowerCase(),
+				quantity: parseFloat($row.data('quantity')) || 0,
+				uom: ($row.data('uom') || '').toLowerCase(),
+				warehouse: ($row.data('warehouse') || '').toLowerCase()
+			};
+		});
+		
+		// Batch işlem - tek seferde tüm satırları kontrol et
+		rowData.forEach(data => {
+			const matchItem = !itemFilter || 
+				data.itemCode.includes(itemFilter) || 
+				data.itemName.includes(itemFilter);
+			
+			const matchQuantity = (!quantityMin || data.quantity >= quantityMin) && 
+				(!quantityMax || data.quantity <= quantityMax);
+			
+			const matchUom = !uomFilter || data.uom.includes(uomFilter);
+			
+			const matchWarehouse = !warehouseFilter || data.warehouse.includes(warehouseFilter);
+			
+			if (matchItem && matchQuantity && matchUom && matchWarehouse) {
+				data.$row.removeClass('filtered-out').show();
+				visibleCount++;
+			} else {
+				data.$row.addClass('filtered-out').hide();
+			}
+		});
+		
+		// Sonuç mesajı
+		if (visibleCount === 0) {
+			$('#no-products-found').show();
+		} else {
+			$('#no-products-found').hide();
+		}
+	}
+	
+	// Debounced filtre fonksiyonu (100ms gecikme)
+	const debouncedFilterProducts = debounce(filterProducts, 100);
+	
+	// Event handler'ları tek seferde tanımla (duplicate önlemek için)
+	$('#filter-item-code, #filter-uom, #filter-warehouse, #filter-quantity-min, #filter-quantity-max, #clear-filters').off();
+	
+	// Ürün kodu - ilk karakter anında, sonrası debounce
+	$('#filter-item-code').on('input', function() {
+		if ($(this).val().length === 1) {
+			filterProducts();
+		} else {
+			debouncedFilterProducts();
+		}
+	});
+	
+	// Birim ve depo - debounce ile
+	$('#filter-uom, #filter-warehouse').on('input', debouncedFilterProducts);
+	
+	// Miktar - debounce ile
+	$('#filter-quantity-min, #filter-quantity-max').on('input', debouncedFilterProducts);
+	
+	// Temizle butonu - event propagation'ı durdur ve filtrele
+	$(document).off('click', '#clear-filters').on('click', '#clear-filters', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		// Tüm filtreleri temizle
+		$('#filter-item-code').val('');
+		$('#filter-quantity-min').val('');
+		$('#filter-quantity-max').val('');
+		$('#filter-uom').val('');
+		$('#filter-warehouse').val('');
+		
+		// Anında filtrele
+		filterProducts();
+	});
+	
+	// İlk yüklemede filtreleme yap
+	filterProducts();
+});
+</script>
+{% endblock %}

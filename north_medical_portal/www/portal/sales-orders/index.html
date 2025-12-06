@@ -1,0 +1,159 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Sales Orders") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header">
+		<h3 class="mb-4">{{ _("Sales Orders") }}</h3>
+	</div>
+
+	{% if has_orders %}
+	<div class="website-list">
+		{% for order in sales_orders %}
+		<div class="web-list-item transaction-list-item">
+			<a href="/order?doctype=Sales Order&name={{ order.name }}" class="transaction-item-link"></a>
+			<div class="row align-items-center">
+				<div class="col-sm-2">
+					<span class="list-item-name font-weight-bold">{{ order.name }}</span>
+					<div class="small text-muted transaction-time">
+						{{ frappe.format_date(order.transaction_date) if order.transaction_date else frappe.format_date(order.creation) }}
+					</div>
+				</div>
+				<div class="col-sm-2">
+					{% if order.docstatus == 0 %}
+						<span class="indicator-pill gray list-item-status">{{ _("Draft") }}</span>
+					{% elif order.docstatus == 1 %}
+						<span class="indicator-pill blue list-item-status">{{ _("Submitted") }}</span>
+					{% elif order.docstatus == 2 %}
+						<span class="indicator-pill red list-item-status">{{ _("Cancelled") }}</span>
+					{% endif %}
+				</div>
+				<div class="col-sm-3">
+					<div class="small text-muted">
+						<strong>{{ _("Customer") }}:</strong><br>
+						{{ order.customer_name or order.customer or "-" }}
+					</div>
+				</div>
+				<div class="col-sm-3">
+					<div class="small text-muted items-preview ellipsis ellipsis-width">
+						{{ order.items_preview if order.items_preview else "-" }}
+					</div>
+				</div>
+				<div class="col-sm-2 text-right">
+					<div class="font-weight-bold item-total">
+						{{ frappe.format_currency(order.grand_total, currency="EUR") }}
+					</div>
+					{% if order.delivery_date %}
+					<div class="small text-muted">
+						{{ _("Delivery") }}: {{ frappe.format_date(order.delivery_date) }}
+					</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+				<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+			</svg>
+		</div>
+		<h5>{{ _("No sales orders found") }}</h5>
+		<p class="text-muted">{{ _("No sales order has been created yet") }}</p>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+.website-list {
+	background-color: var(--fg-color);
+	padding: 0 var(--padding-lg);
+	border-radius: var(--border-radius-md);
+}
+
+.transaction-list-item {
+	padding: 1rem 0;
+	border-bottom: 1px solid var(--border-color);
+	position: relative;
+	cursor: pointer;
+}
+
+.transaction-list-item:hover {
+	background-color: #f8f9fa;
+}
+
+.transaction-list-item:only-child,
+.transaction-list-item:last-child {
+	border: 0;
+}
+
+.transaction-item-link {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	text-decoration: none;
+	opacity: 0;
+	overflow: hidden;
+	text-indent: -9999px;
+	z-index: 1;
+	pointer-events: auto;
+}
+
+.transaction-list-item > .row {
+	position: relative;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.transaction-list-item > .row > * {
+	pointer-events: none;
+}
+
+.list-item-name {
+	font-size: var(--font-size-sm);
+	color: var(--text-color);
+}
+
+.transaction-time {
+	margin-top: 0.25rem;
+}
+
+.indicator-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.375rem 0.875rem;
+	border-radius: 1rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1.2;
+	vertical-align: middle;
+}
+
+.indicator-pill.gray {
+	background-color: #e0e0e0;
+	color: #666;
+}
+
+.indicator-pill.blue {
+	background-color: #e3f2fd;
+	color: #1976d2;
+}
+
+.indicator-pill.red {
+	background-color: #f8d7da;
+	color: #721c24;
+}
+
+.list-item-status {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+</style>
+{% endblock %}

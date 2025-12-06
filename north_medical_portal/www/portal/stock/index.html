@@ -1,0 +1,739 @@
+{% extends "templates/web.html" %}
+{% from "erpnext/templates/includes/macros.html" import product_image %}
+
+{% block title %}{{ _("Stok Durumu") }}{% endblock %}
+
+{% block page_content %}
+<div class="portal-page">
+	<div class="page-header d-flex justify-content-between align-items-center">
+		<h3 class="mb-4">{{ _("Stock Status") }}</h3>
+		<div class="d-flex flex-column gap-2 align-items-end">
+			<button type="button" id="trigger-reorder-check" class="btn btn-primary btn-sm">
+				<i class="fa fa-refresh"></i> {{ _("Minimum Stock Control") }}
+			</button>
+		</div>
+	</div>
+
+	{% if has_stock_data %}
+	<!-- Profesyonel Filtre Çubuğu -->
+	<div class="product-filter-bar mb-4" id="stock-filter-bar-main" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+		<div class="filter-bar-container">
+			<div class="filter-row">
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-barcode"></i> {{ _("Ürün Kodu") }}
+					</label>
+					<input type="text" id="filter-item-code" class="filter-input" 
+						placeholder="{{ _('Ürün kodu ile ara...') }}">
+				</div>
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-tag"></i> {{ _("Ürün Adı") }}
+					</label>
+					<input type="text" id="filter-item-name" class="filter-input" 
+						placeholder="{{ _('Ürün adı ile ara...') }}">
+				</div>
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-warehouse"></i> {{ _("Depo") }}
+					</label>
+					<select id="filter-warehouse" class="filter-input">
+						<option value="">{{ _("Tüm Depolar") }}</option>
+						{% for wh in warehouses %}
+						<option value="{{ wh.name }}">{{ wh.warehouse_name or wh.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="filter-group">
+					<label class="filter-label">
+						<i class="fa fa-cubes"></i> {{ _("Stok Miktarı") }}
+					</label>
+					<div class="filter-quantity-range">
+						<input type="number" id="filter-stock-min" class="filter-input filter-input-small" 
+							placeholder="{{ _('Min') }}" step="1" min="0">
+						<span class="filter-separator">-</span>
+						<input type="number" id="filter-stock-max" class="filter-input filter-input-small" 
+							placeholder="{{ _('Max') }}" step="1" min="0">
+					</div>
+				</div>
+				<div class="filter-actions">
+					<button type="button" id="clear-filters" class="btn-filter-clear">
+						<i class="fa fa-times"></i> {{ _("Temizle") }}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="website-list">
+		{% for item in stock_data %}
+		{% set actual_qty = item.actual_qty or 0 %}
+		{% set reorder_level = item.warehouse_reorder_level or 0 %}
+		{% set is_low_stock = reorder_level > 0 and actual_qty <= reorder_level %}
+		<div class="web-list-item transaction-list-item stock-item-row {% if is_low_stock %}low-stock-row{% else %}normal-stock-row{% endif %}"
+			data-item-code="{{ item.item_code }}"
+			data-item-name="{{ item.item_name }}"
+			data-warehouse="{{ item.warehouse }}">
+			<div class="row align-items-center">
+				<div class="col-sm-3">
+					<div class="d-flex align-items-center">
+						<div class="order-image-col mr-3 flex-shrink-0">
+							<div class="order-image">
+								{% if item.thumbnail %}
+									{{ product_image(item.thumbnail, no_border=True) }}
+								{% else %}
+									<div class="no-image-cart-item">
+										{{ frappe.utils.get_abbr(item.item_name or item.item_code) or "NA" }}
+									</div>
+								{% endif %}
+							</div>
+						</div>
+						<div class="flex-grow-1">
+							<span class="list-item-name font-weight-bold d-block">{{ item.item_code }}</span>
+							{% if item.item_name and item.item_name != item.item_code %}
+							<div class="small text-muted transaction-time">
+								{{ item.item_name }}
+							</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
+				<div class="col-sm-2">
+					<div class="small text-muted">
+						{{ _("Warehouse") }}:
+					</div>
+					<div class="font-weight-bold">
+						{{ item.warehouse_name or item.warehouse }}
+					</div>
+				</div>
+				<div class="col-sm-2 text-right">
+					<div class="small text-muted">
+						{{ _("Current Stock") }}:
+					</div>
+					<div class="stock-qty font-weight-bold {% if is_low_stock %}text-danger{% else %}text-primary{% endif %}">
+						{% if item.actual_qty %}{{ (item.actual_qty)|round(0)|int }}{% else %}0{% endif %}
+					</div>
+				</div>
+				<div class="col-sm-3 text-right">
+					<div class="small text-muted">
+						{{ _("Min. Stock") }}: <strong>{% if item.warehouse_reorder_level %}{{ (item.warehouse_reorder_level)|round(0)|int }}{% else %}-{% endif %}</strong>
+					</div>
+					<div class="small text-muted">
+						{{ _("Order Qty") }}: <strong>{% if item.warehouse_reorder_qty %}{{ (item.warehouse_reorder_qty)|round(0)|int }}{% else %}-{% endif %}</strong>
+					</div>
+				</div>
+				<div class="col-sm-1 text-right">
+					<button class="btn btn-sm btn-link edit-reorder-btn" 
+						type="button"
+						data-item-code="{{ item.item_code }}"
+						data-item-name="{{ item.item_name }}"
+						data-warehouse="{{ item.warehouse }}"
+						data-warehouse-name="{{ item.warehouse_name or item.warehouse }}"
+						data-reorder-level="{{ item.warehouse_reorder_level or '' }}"
+						data-reorder-qty="{{ item.warehouse_reorder_qty or '' }}"
+						onclick="event.stopPropagation(); return false;"
+						title="{{ _('Edit Reorder Levels') }}"
+						style="padding: 0.5rem; font-size: 1.3rem; color: #6c757d; line-height: 1; min-width: 35px;">
+						<span style="display: inline-block;">⋯</span>
+					</button>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	
+	<div id="no-results" class="alert alert-info text-center" style="display: none;">
+		{{ _("Filtre kriterlerinize uygun sonuç bulunamadı") }}
+	</div>
+	{% else %}
+	<div class="empty-state text-center py-5">
+		<div class="empty-state-icon mb-3">
+			<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 0h6m-6 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7"/>
+			</svg>
+		</div>
+		<h5>{{ _("Stok verisi bulunamadı") }}</h5>
+		<p class="text-muted">{{ _("Henüz stok hareketi yapılmamış") }}</p>
+	</div>
+	{% endif %}
+</div>
+
+<style>
+/* Profesyonel Filtre Çubuğu Stilleri */
+.product-filter-bar {
+	background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 1.25rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	margin-bottom: 1rem !important;
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-bar-container {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.filter-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	margin: -0.5rem;
+	box-sizing: border-box;
+	gap: 0.75rem;
+}
+
+.filter-row > * {
+	margin: 0.5rem;
+}
+
+.filter-group {
+	flex: 1;
+	min-width: 180px;
+	display: flex;
+	flex-direction: column;
+	margin: 0.5rem;
+	box-sizing: border-box;
+	justify-content: flex-end;
+}
+
+.filter-group > *:not(:last-child) {
+	margin-bottom: 0.5rem;
+}
+
+.filter-quantity-range {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: 0.5rem;
+}
+
+.filter-label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #495057;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.filter-label i {
+	color: #0099cc;
+	margin-right: 0.25rem;
+}
+
+.filter-input {
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid #ced4da;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+	background-color: #fff;
+}
+
+.filter-input:focus {
+	outline: none;
+	border-color: #0099cc;
+	box-shadow: 0 0 0 0.2rem rgba(0, 153, 204, 0.15);
+}
+
+.filter-input-small {
+	flex: 1;
+	min-width: 80px;
+	max-width: 120px;
+}
+
+.filter-separator {
+	color: #6c757d;
+	font-weight: 500;
+	flex-shrink: 0;
+	margin: 0;
+	padding: 0 0.25rem;
+}
+
+.filter-actions {
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-end;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.btn-filter-clear {
+	padding: 0.5rem 1rem;
+	background-color: #6c757d;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+	height: fit-content;
+}
+
+.btn-filter-clear:hover {
+	background-color: #5a6268;
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-filter-clear i {
+	margin-right: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.filter-row {
+		flex-direction: column;
+		gap: 0;
+	}
+	
+	.filter-row > * {
+		margin: 0.5rem 0;
+	}
+	
+	.filter-group {
+		min-width: 100%;
+		width: 100%;
+	}
+	
+	.filter-quantity-range {
+		width: 100%;
+	}
+	
+	.filter-input-small {
+		max-width: 100%;
+		width: calc(50% - 0.5rem);
+	}
+	
+	.filter-actions {
+		width: 100%;
+		margin-left: 0;
+		justify-content: stretch;
+	}
+	
+	.btn-filter-clear {
+		width: 100%;
+	}
+}
+
+.website-list {
+	background-color: var(--fg-color);
+	padding: 0 var(--padding-lg);
+	border-radius: var(--border-radius-md);
+}
+
+.transaction-list-item {
+	padding: 1rem 0;
+	border-bottom: 1px solid var(--border-color);
+	position: relative;
+	cursor: pointer;
+}
+
+.transaction-list-item:hover {
+	background-color: #f8f9fa;
+}
+
+.transaction-list-item:only-child,
+.transaction-list-item:last-child {
+	border: 0;
+}
+
+.list-item-name {
+	font-size: var(--font-size-sm);
+	color: var(--text-color);
+}
+
+.transaction-time {
+	margin-top: 0.25rem;
+}
+
+.stock-qty {
+	font-weight: 600;
+}
+
+.low-stock-row {
+	background-color: #fff3cd;
+}
+
+.low-stock-row:hover {
+	background-color: #ffe082 !important;
+}
+
+.normal-stock-row {
+	background-color: #ffffff;
+}
+
+.normal-stock-row:hover {
+	background-color: #e8f5e9 !important;
+}
+
+.order-image-col {
+	width: 80px;
+	flex-shrink: 0;
+}
+
+.order-image {
+	width: 80px;
+	height: 80px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	border-radius: 4px;
+	background-color: #f5f5f5;
+}
+
+.order-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.no-image-cart-item {
+	width: 80px;
+	height: 80px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 24px;
+	font-weight: bold;
+	color: #999;
+	background-color: #f5f5f5;
+	border-radius: 4px;
+}
+
+/* Üç nokta butonu için */
+.edit-reorder-btn {
+	border: none;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.edit-reorder-btn:hover {
+	background-color: #f8f9fa;
+	border-radius: 4px;
+	color: #495057 !important;
+}
+
+.edit-reorder-btn:focus {
+	outline: none;
+	box-shadow: none;
+}
+</style>
+
+<script>
+// Asgari stok kontrolü butonu - global function (frappe.ready dışında)
+window.triggerReorderCheck = function() {
+	const $btn = $('#trigger-reorder-check');
+	if ($btn.length === 0) {
+		frappe.show_alert({
+			message: '{{ _("Buton bulunamadı") }}',
+			indicator: 'red'
+		}, 5);
+		return;
+	}
+	
+	const originalHtml = $btn.html();
+	
+	// Butonu devre dışı bırak ve loading göster
+	$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Kontrol ediliyor...") }}');
+	
+	frappe.call({
+		method: 'north_medical_portal.www.api.stock.trigger_reorder_check',
+		callback: function(r) {
+			$btn.prop('disabled', false).html(originalHtml);
+			
+			if (r && r.message && r.message.success) {
+				frappe.show_alert({
+					message: r.message.message || '{{ _("Asgari stok kontrolü tamamlandı") }}',
+					indicator: 'green'
+				}, 5);
+				
+				// Sayfayı yenile
+				setTimeout(function() {
+					location.reload();
+				}, 2000);
+			} else {
+				frappe.show_alert({
+					message: (r && r.message && r.message.message) ? r.message.message : '{{ _("Bir hata oluştu") }}',
+					indicator: 'red'
+				}, 5);
+			}
+		},
+		error: function(r) {
+			$btn.prop('disabled', false).html(originalHtml);
+			frappe.show_alert({
+				message: (r && r.message) ? r.message : '{{ _("Bir hata oluştu") }}',
+				indicator: 'red'
+			}, 5);
+		}
+	});
+};
+
+frappe.ready(function() {
+	// Filtre çubuğunu kontrol et ve görünür yap
+	const $filterBar = $('.product-filter-bar');
+	if ($filterBar.length > 0) {
+		$filterBar.css({
+			'display': 'block',
+			'visibility': 'visible',
+			'opacity': '1',
+			'width': '100%'
+		});
+	}
+	
+	// Stok satırları yoksa filtreleme yapma
+	if (!$('.stock-item-row').length) {
+		return;
+	}
+	
+	// Hızlı filtre fonksiyonu - optimize edilmiş ve anında çalışan
+	function filterTable() {
+		const itemCodeFilter = $('#filter-item-code').val().toLowerCase().trim();
+		const itemNameFilter = $('#filter-item-name').val().toLowerCase().trim();
+		const warehouseFilter = $('#filter-warehouse').val();
+		const stockMinVal = $('#filter-stock-min').val().trim();
+		const stockMaxVal = $('#filter-stock-max').val().trim();
+		const stockMin = stockMinVal ? parseFloat(stockMinVal) : null;
+		const stockMax = stockMaxVal ? parseFloat(stockMaxVal) : null;
+		
+		// Filtreler boşsa tümünü göster
+		if (!itemCodeFilter && !itemNameFilter && !warehouseFilter && stockMin === null && stockMax === null) {
+			$('.stock-item-row').removeClass('filtered-out').show();
+			$('#no-results').hide();
+			$('.website-list').show();
+			return;
+		}
+		
+		let visibleCount = 0;
+		
+		// Performans için batch update
+		const $rows = $('.stock-item-row');
+		const rowsArray = $rows.toArray();
+		
+		// Önce tüm değerleri cache'le - sadece bir kez oku
+		const rowData = rowsArray.map(row => {
+			const $row = $(row);
+			const stockQtyText = $row.find('.stock-qty').text().trim();
+			return {
+				$row: $row,
+				itemCode: ($row.data('item-code') || '').toLowerCase(),
+				itemName: ($row.data('item-name') || '').toLowerCase(),
+				warehouse: $row.data('warehouse') || '',
+				stockQty: parseFloat(stockQtyText.replace(/[^\d.-]/g, '')) || 0
+			};
+		});
+		
+		// Batch işlem - tek seferde tüm satırları kontrol et ve güncelle
+		rowData.forEach(data => {
+			const matchItemCode = !itemCodeFilter || data.itemCode.includes(itemCodeFilter);
+			const matchItemName = !itemNameFilter || data.itemName.includes(itemNameFilter);
+			const matchWarehouse = !warehouseFilter || data.warehouse === warehouseFilter;
+			const matchStock = (stockMin === null || data.stockQty >= stockMin) && (stockMax === null || data.stockQty <= stockMax);
+			
+			if (matchItemCode && matchItemName && matchWarehouse && matchStock) {
+				data.$row.removeClass('filtered-out').show();
+				visibleCount++;
+			} else {
+				data.$row.addClass('filtered-out').hide();
+			}
+		});
+		
+		// Sonuç yoksa mesaj göster
+		if (visibleCount === 0) {
+			$('#no-results').show();
+			$('.website-list').hide();
+		} else {
+			$('#no-results').hide();
+			$('.website-list').show();
+		}
+	}
+	
+	// Event handler'ları temizle ve yeniden tanımla (duplicate önlemek için)
+	$('#filter-item-code, #filter-item-name, #filter-warehouse, #filter-stock-min, #filter-stock-max').off('input change');
+	$('#clear-filters').off('click');
+	
+	// Ürün kodu - anında filtreleme (her karakter yazıldığında)
+	$('#filter-item-code').on('input', function() {
+		filterTable();
+	});
+	
+	// Ürün adı - anında filtreleme (her karakter yazıldığında)
+	$('#filter-item-name').on('input', function() {
+		filterTable();
+	});
+	
+	// Depo select - anında filtreleme
+	$('#filter-warehouse').on('change', function() {
+		filterTable();
+	});
+	
+	// Stok miktarı - anında filtreleme (her değişiklikte)
+	$('#filter-stock-min, #filter-stock-max').on('input', function() {
+		filterTable();
+	});
+	
+	// Temizle butonu - tüm filtreleri temizle ve anında filtrele
+	$('#clear-filters').on('click', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		// Tüm filtreleri temizle
+		$('#filter-item-code').val('');
+		$('#filter-item-name').val('');
+		$('#filter-warehouse').val('');
+		$('#filter-stock-min').val('');
+		$('#filter-stock-max').val('');
+		
+		// Anında filtrele (tümünü göster)
+		filterTable();
+	});
+	
+	// İlk yüklemede filtreleme yap (eğer varsayılan filtreler varsa)
+	filterTable();
+	
+	// Reorder level düzenleme modal - direkt buton tıklama
+	$('.edit-reorder-btn').off('click').on('click', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		const $btn = $(this);
+		const itemCode = $btn.data('item-code');
+		const itemName = $btn.data('item-name');
+		const warehouse = $btn.data('warehouse');
+		const warehouseName = $btn.data('warehouse-name');
+		const reorderLevel = $btn.data('reorder-level') || '';
+		const reorderQty = $btn.data('reorder-qty') || '';
+		
+		// Modal oluştur
+		const modal = $(`
+			<div class="modal fade" id="editReorderModal" tabindex="-1" role="dialog">
+				<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title">{{ _("Edit Reorder Levels") }}</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div class="form-group">
+								<label>{{ _("Item Code") }}</label>
+								<input type="text" class="form-control" value="${itemCode}" readonly>
+							</div>
+							<div class="form-group">
+								<label>{{ _("Item Name") }}</label>
+								<input type="text" class="form-control" value="${itemName || ''}" readonly>
+							</div>
+							<div class="form-group">
+								<label>{{ _("Warehouse") }}</label>
+								<input type="text" class="form-control" value="${warehouseName || warehouse}" readonly>
+							</div>
+							<div class="form-group">
+								<label>{{ _("Min. Stock Level") }}</label>
+								<input type="number" id="modal-reorder-level" class="form-control" 
+									value="${reorderLevel ? Math.round(parseFloat(reorderLevel)) : ''}" step="1" min="0" placeholder="0">
+								<small class="form-text text-muted">{{ _("Minimum stock level before reorder") }}</small>
+							</div>
+							<div class="form-group">
+								<label>{{ _("Reorder Quantity") }}</label>
+								<input type="number" id="modal-reorder-qty" class="form-control" 
+									value="${reorderQty ? Math.round(parseFloat(reorderQty)) : ''}" step="1" min="0" placeholder="0">
+								<small class="form-text text-muted">{{ _("Quantity to order when stock falls below minimum") }}</small>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _("Cancel") }}</button>
+							<button type="button" class="btn btn-primary" id="save-reorder-btn">{{ _("Save") }}</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		`);
+		
+		// Modal'ı ekle ve göster
+		$('body').append(modal);
+		$('#editReorderModal').modal('show');
+		
+		// Kaydet butonu - önceki handler'ları temizle (duplicate önlemek için)
+		$('#save-reorder-btn').off('click').on('click', function() {
+			const reorderLevel = $('#modal-reorder-level').val() ? parseInt($('#modal-reorder-level').val()) : null;
+			const reorderQty = $('#modal-reorder-qty').val() ? parseInt($('#modal-reorder-qty').val()) : null;
+			
+			// Validation: Eğer reorder_level varsa reorder_qty de olmalı
+			if (reorderLevel && !reorderQty) {
+				frappe.show_alert({
+					message: '{{ _("Min. stok seviyesi belirlendiğinde sipariş miktarı da belirlenmelidir") }}',
+					indicator: 'orange'
+				}, 5);
+				return;
+			}
+			
+			// Kaydet
+			$('#save-reorder-btn').prop('disabled', true).html('{{ _("Saving...") }}');
+			
+			frappe.call({
+				method: 'north_medical_portal.www.api.stock.update_reorder_levels',
+				args: {
+					item_code: itemCode,
+					warehouse: warehouse,
+					reorder_level: reorderLevel,
+					reorder_qty: reorderQty
+				},
+				callback: function(r) {
+					$('#save-reorder-btn').prop('disabled', false).html('{{ _("Save") }}');
+					
+					if (r.message) {
+						frappe.show_alert({
+							message: r.message.message || '{{ _("Stok seviyeleri güncellendi") }}',
+							indicator: 'green'
+						}, 3);
+						
+						// Modal'ı kapat ve sayfayı yenile
+						$('#editReorderModal').modal('hide');
+						setTimeout(function() {
+							location.reload();
+						}, 1000);
+					}
+				},
+				error: function(r) {
+					$('#save-reorder-btn').prop('disabled', false).html('{{ _("Save") }}');
+					frappe.show_alert({
+						message: r.message || '{{ _("Bir hata oluştu") }}',
+						indicator: 'red'
+					}, 5);
+				}
+			});
+		});
+		
+		// Modal kapandığında temizle - önceki handler'ları temizle (duplicate önlemek için)
+		$('#editReorderModal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+			$(this).remove();
+		});
+	});
+	
+	// trigger-reorder-check butonu için event handler - frappe.ready içinde
+	// Önceki handler'ları temizle (duplicate önlemek için)
+	$(document).off('click', '#trigger-reorder-check').on('click', '#trigger-reorder-check', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		if (typeof triggerReorderCheck === 'function') {
+			triggerReorderCheck();
+		}
+	});
+});
+</script>
+{% endblock %}

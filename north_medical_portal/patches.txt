@@ -1,0 +1,5 @@
+[pre_model_sync]
+
+[post_model_sync]
+# Kalıcı yapılandırmalar fixture'lardan yüklenir
+# Setup işlemleri setup/install.py içinde yapılıyor
